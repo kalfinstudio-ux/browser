@@ -12,3 +12,20 @@ SUPABASE_ANON_KEY = "sb_publishable_WEpourxfk4IKga2XyxKucQ_hkmxuJnY"
 # Peluang mencatat berkas pendukung (gambar/CSS/JS) yang sukses: 0 sampai 1. Halaman dan galat selalu dicatat.
 LOG_ASSET_SAMPLE = "0.1"
 # Rahasia LOG_SECRET JANGAN ditulis di sini. Pasang lewat:  npx wrangler secret put LOG_SECRET
+
+# Batas pemakaian per alamat IP (Cloudflare Rate Limiting). Butuh Wrangler 4.36+: jalankan  npx wrangler@latest deploy
+# period hanya boleh 10 atau 60 detik. Hitungan berlaku per lokasi Cloudflare. IP hanya dipakai sementara, tidak disimpan atau dicatat.
+# RL_DOC = halaman (dokumen/iframe) per menit; RL_ALL = semua permintaan (termasuk gambar, CSS, JS) per menit.
+[[ratelimits]]
+name = "RL_DOC"
+namespace_id = "1001"
+  [ratelimits.simple]
+  limit = 60
+  period = 60
+
+[[ratelimits]]
+name = "RL_ALL"
+namespace_id = "1002"
+  [ratelimits.simple]
+  limit = 900
+  period = 60

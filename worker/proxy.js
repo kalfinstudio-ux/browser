@@ -4,9 +4,12 @@
    - Menulis ulang tautan, gambar, skrip, CSS, dan form di HTML agar tetap lewat proxy.
    - Menyuntik skrip kecil untuk fetch/XHR/window.open dan melaporkan alamat halaman ke induk.
    - Tidak meneruskan cookie (tidak ada login lewat proxy).
-   - Hanya melayani permintaan dari ALLOWED_ORIGINS, menolak alamat jaringan internal. */
+   - Hanya melayani permintaan dari ALLOWED_ORIGINS, menolak alamat jaringan internal.
+   - Moderasi: daftar blokir/peringatan host dari Supabase (browser_blocklist_get, cache ~60 detik) dan
+     batas pemakaian per alamat IP (binding RL_DOC / RL_ALL; IP hanya dipakai sementara, tidak disimpan atau dicatat). */
 
 const PREFIX = "/p/";
+const PREFIX_ACK = "/q/";   /* sama panjang dengan PREFIX: halaman yang sudah dikonfirmasi pengguna lewat peringatan */
 
 /* ---------- pembantu (diekspor untuk pengujian) ---------- */
 
@@ -31,7 +34,7 @@ export function proxify(val, base, origin) {
   try {
     const u = new URL(val, base);
     if (u.protocol !== "http:" && u.protocol !== "https:") return val;
-    if (u.origin === origin && u.pathname.indexOf(PREFIX) === 0) return u.href;
+    if (u.origin === origin && (u.pathname.indexOf(PREFIX) === 0 || u.pathname.indexOf(PREFIX_ACK) === 0)) return u.href;
     return origin + PREFIX + u.href;
   } catch (e) { return val; }
 }
@@ -83,7 +86,7 @@ const INJECT = "<script>(function(){" +
   "function real(){return (location.pathname.slice(3)+location.search).replace(/^(https?):\\/+/i,'$1://')}" +
   "function px(u){try{var s=String(u);if(!s||/^(#|data:|blob:|javascript:|mailto:|tel:|about:)/i.test(s))return u;" +
   "var a=new URL(s,real());if(a.protocol!=='http:'&&a.protocol!=='https:')return u;" +
-  "if(a.origin===O&&a.pathname.indexOf('/p/')===0)return a.href;return O+'/p/'+a.href}catch(e){return u}}" +
+  "if(a.origin===O&&(a.pathname.indexOf('/p/')===0||a.pathname.indexOf('/q/')===0))return a.href;return O+'/p/'+a.href}catch(e){return u}}" +
   "try{var F=window.fetch;if(F)window.fetch=function(i,o){try{if(typeof i==='string'||i instanceof URL)i=px(i);" +
   "else if(i&&i.url){var n=px(i.url);if(n!==i.url)i=new Request(n,i)}}catch(e){}return F.call(this,i,o)}}catch(e){}" +
   "try{var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){arguments[1]=px(u);return X.apply(this,arguments)}}catch(e){}" +
@@ -129,6 +132,117 @@ function shouldLog(env, kind, status) {
   return Math.random() < (isNaN(r) ? 0.1 : Math.max(0, Math.min(1, r)));
 }
 
+/* ---------- moderasi: aturan blokir/peringatan dan batas pemakaian ---------- */
+
+/* "a.b.contoh.com" -> ["a.b.contoh.com", "b.contoh.com", "contoh.com"]; subdomain ikut tercakup aturan induknya. */
+export function hostCandidates(h) {
+  h = String(h || "").toLowerCase().replace(/^www\./, "");
+  const p = h.split("."), out = [];
+  for (let i = 0; i <= p.length - 2; i++) out.push(p.slice(i).join("."));
+  return out;
+}
+
+/* map: Map(host -> {host, action, reason}). Aturan "block" menang atas "warn". */
+export function matchRule(map, hostname) {
+  if (!map || !map.size) return null;
+  let found = null;
+  const c = hostCandidates(hostname);
+  for (let i = 0; i < c.length; i++) {
+    const r = map.get(c[i]);
+    if (r) { if (r.action === "block") return r; if (!found) found = r; }
+  }
+  return found;
+}
+
+export function esc(s) {
+  return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+function num(v, d) { const x = parseInt(v, 10); return x > 0 ? x : d; }
+
+/* Aturan disimpan di memori Worker ~60 detik. Bila Supabase tidak bisa dihubungi, aturan lama tetap dipakai;
+   bila belum pernah berhasil dimuat, permintaan tetap dilayani (fail-open) supaya proxy tidak mati karena database. */
+let RULES = { at: 0, map: null, fail: 0, p: null };
+
+async function loadRules(env) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY || !env.LOG_SECRET) return null;
+  const now = Date.now();
+  if (RULES.map && now - RULES.at < 60000) return RULES.map;
+  if (RULES.p) return RULES.p;
+  if (!RULES.map && RULES.fail && now - RULES.fail < 10000) return null;
+  RULES.p = (async function () {
+    try {
+      const r = await fetch(String(env.SUPABASE_URL).replace(/\/+$/, "") + "/rest/v1/rpc/browser_blocklist_get", {
+        method: "POST",
+        headers: { "content-type": "application/json", apikey: env.SUPABASE_ANON_KEY },
+        body: JSON.stringify({ p_secret: env.LOG_SECRET }),
+        signal: typeof AbortSignal !== "undefined" && AbortSignal.timeout ? AbortSignal.timeout(2500) : undefined
+      });
+      if (r.ok) {
+        const rows = await r.json(), m = new Map();
+        if (Array.isArray(rows)) rows.forEach(function (x) { if (x && x.host) m.set(String(x.host).toLowerCase(), x); });
+        RULES.map = m; RULES.at = Date.now(); RULES.fail = 0;
+        return m;
+      }
+    } catch (e) {}
+    RULES.fail = Date.now();
+    if (RULES.map) RULES.at = Date.now() - 45000;   /* pakai aturan lama, coba lagi ~15 detik */
+    return RULES.map;
+  })();
+  try { return await RULES.p; } finally { RULES.p = null; }
+}
+
+/* Batas pemakaian. Memakai binding Cloudflare Rate Limiting bila ada (lihat wrangler.toml);
+   bila tidak, cadangan sederhana di memori isolate (kurang akurat, tetap membantu). Kunci = IP, tidak disimpan. */
+const MEM = new Map();
+async function overLimit(env, name, key, perMin) {
+  const b = env[name];
+  if (b && typeof b.limit === "function") {
+    try { const r = await b.limit({ key: key }); return !r.success; } catch (e) { return false; }
+  }
+  const now = Date.now(), k = name + ":" + key, w = MEM.get(k);
+  if (!w || now - w.t > 60000) { if (MEM.size > 5000) MEM.clear(); MEM.set(k, { t: now, n: 1 }); return false; }
+  w.n++;
+  return w.n > perMin;
+}
+
+const PAGE_CSS = "body{margin:0;font:16px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif;background:#f6f7f5;color:#1b2420;display:flex;min-height:100vh;align-items:center;justify-content:center;padding:16px;box-sizing:border-box}" +
+  "main{max-width:440px;background:#fff;border:1px solid #dfe3df;border-radius:12px;padding:22px}h1{font-size:1.2rem;margin:0 0 8px}p{margin:8px 0;color:#5f6b65}b{color:#1b2420;word-break:break-all}" +
+  "button{font:inherit;font-weight:600;padding:10px 16px;border-radius:8px;border:1px solid #dfe3df;background:#fff;color:#1b2420;cursor:pointer;margin:8px 8px 0 0}button.go{background:#e8561a;border-color:#e8561a;color:#fff}" +
+  "@media(prefers-color-scheme:dark){body{background:#0e1311;color:#e8eeea}main{background:#161c19;border-color:#2a332f}p{color:#9aa7a0}b{color:#e8eeea}button{background:#1d2521;border-color:#2a332f;color:#e8eeea}button.go{background:#ff7a3d;border-color:#ff7a3d;color:#0e1311}}";
+
+function htmlPage(status, body, script, extraHeaders) {
+  const csp = "default-src 'none'; style-src 'unsafe-inline'" + (script ? "; script-src 'unsafe-inline'" : "") + "; base-uri 'none'; form-action 'none'";
+  const h = Object.assign({ "content-type": "text/html; charset=utf-8", "cache-control": "no-store", "x-robots-tag": "noindex", "content-security-policy": csp }, extraHeaders || {});
+  return new Response('<!doctype html><html lang="id"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>GoWithDME</title><style>' +
+    PAGE_CSS + "</style></head><body><main>" + body + "</main>" + (script ? "<script>" + script + "</script>" : "") + "</body></html>", { status: status, headers: h });
+}
+
+export function blockedPage(host, reason) {
+  return htmlPage(403, "<h1>Situs ini diblokir</h1><p><b>" + esc(host) + "</b> tidak bisa dibuka lewat Browser GoWithDME." +
+    (reason ? "</p><p>Alasan: " + esc(reason) : "") + "</p><p>Merasa ini keliru? Hubungi admin@gowithdme.com.</p>");
+}
+
+export function tooManyPage() {
+  return htmlPage(429, "<h1>Terlalu banyak permintaan</h1><p>Tunggu sekitar satu menit, lalu muat ulang halaman ini.</p>", null, { "retry-after": "60" });
+}
+
+/* Halaman peringatan: setelah "Lanjutkan", pilihan diingat selama sesi tab (sessionStorage) agar tidak ditanya tiap halaman. */
+export function warnPage(ruleHost, shownHost, reason, goPath) {
+  const body = "<h1>Situs ini ditandai bermasalah</h1><p><b>" + esc(shownHost) + "</b></p>" +
+    "<p>" + (reason ? esc(reason) : "Situs ini pernah dilaporkan berbahaya atau menyesatkan.") + "</p>" +
+    "<p>Jangan memasukkan kata sandi, data pribadi, atau data pembayaran di sini.</p>" +
+    '<button class="go" id="go" type="button" data-href="' + esc(goPath) + '" data-key="' + esc("gwd.ack." + ruleHost) + '">Lanjutkan</button>' +
+    '<button id="back" type="button">Kembali</button>';
+  const script = "(function(){var g=document.getElementById('go'),h=g.getAttribute('data-href'),k=g.getAttribute('data-key');" +
+    "try{if(sessionStorage.getItem(k)==='1'){location.replace(h);return}}catch(e){}" +
+    "g.onclick=function(){try{sessionStorage.setItem(k,'1')}catch(e){}location.replace(h)};" +
+    "document.getElementById('back').onclick=function(){if(history.length>1)history.back();else document.body.textContent=''}})();";
+  return htmlPage(200, body, script);
+}
+
 /* ---------- penangan utama ---------- */
 
 export default {
@@ -141,15 +255,16 @@ export default {
     }
     if (!isAllowed(req, env, url)) return text(403, "Akses proxy ditolak: asal permintaan tidak diizinkan.");
 
-    let target;
-    if (url.pathname.indexOf(PREFIX) === 0) {
+    let target, acked = false;
+    if (url.pathname.indexOf(PREFIX) === 0 || url.pathname.indexOf(PREFIX_ACK) === 0) {
+      acked = url.pathname.indexOf(PREFIX_ACK) === 0;
       target = targetFromPath(url.pathname, url.search);
     } else {
       /* Alamat "/foo" dari skrip halaman: cari asalnya lewat Referer */
       const ref = req.headers.get("referer");
       try {
         const r = new URL(ref);
-        if (r.origin !== url.origin || r.pathname.indexOf(PREFIX) !== 0) return text(404, "Tidak ditemukan.");
+        if (r.origin !== url.origin || (r.pathname.indexOf(PREFIX) !== 0 && r.pathname.indexOf(PREFIX_ACK) !== 0)) return text(404, "Tidak ditemukan.");
         const real = targetFromPath(r.pathname, r.search);
         return Response.redirect(proxify(new URL(url.pathname + url.search, real).href, real, url.origin), 307);
       } catch (e) { return text(404, "Tidak ditemukan."); }
@@ -160,6 +275,25 @@ export default {
     if ((t.protocol !== "http:" && t.protocol !== "https:") || blockedHost(t.hostname)) {
       sendLog(env, ctx, buildLog("error", t, 403, 0, 0, { reason: "blocked" }));
       return text(403, "Alamat ini tidak diizinkan.");
+    }
+
+    /* Moderasi: batas pemakaian, lalu daftar blokir/peringatan. */
+    const fdest = req.headers.get("sec-fetch-dest") || "";
+    const wantsDoc = fdest === "iframe" || fdest === "document" || (req.headers.get("accept") || "").indexOf("text/html") >= 0;
+    const ip = req.headers.get("cf-connecting-ip") || "unknown";
+    if ((await overLimit(env, "RL_ALL", ip, num(env.LIMIT_ALL_PER_MIN, 900))) ||
+        (wantsDoc && (await overLimit(env, "RL_DOC", ip, num(env.LIMIT_DOC_PER_MIN, 60))))) {
+      if (Math.random() < 0.1) sendLog(env, ctx, buildLog("error", t, 429, 0, 0, { type: "limited", scope: wantsDoc ? "doc" : "all" }));
+      return wantsDoc ? tooManyPage() : text(429, "Terlalu banyak permintaan. Coba lagi sebentar.");
+    }
+    const rule = matchRule(await loadRules(env), t.hostname);
+    if (rule && rule.action === "block") {
+      sendLog(env, ctx, buildLog("error", t, 403, 0, 0, { type: "blocked" }));
+      return wantsDoc ? blockedPage(t.hostname, rule.reason) : text(403, "Situs ini diblokir.");
+    }
+    if (rule && rule.action === "warn" && wantsDoc && !acked) {
+      sendLog(env, ctx, buildLog("doc", t, 200, 0, 0, { type: "warned" }));
+      return warnPage(rule.host, t.hostname, rule.reason, PREFIX_ACK + t.href);
     }
 
     const h = new Headers();

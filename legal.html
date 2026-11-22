@@ -86,6 +86,9 @@
   <li>membebani, merekayasa balik, atau menyalahgunakan Layanan, proxy, atau pencatatan lalu lintasnya;</li>
   <li>melanggar hak orang lain atau peraturan perundang-undangan yang berlaku, termasuk UU ITE dan UU Pelindungan Data Pribadi.</li>
 </ul>
+<h3>2.1 Daftar blokir, peringatan, dan batas pemakaian</h3>
+<p>Kami dapat memasukkan situs ke daftar blokir (tidak bisa dibuka lewat Layanan) atau daftar peringatan (ditampilkan halaman peringatan sebelum dibuka), berdasarkan penilaian kami atau laporan pengguna. Kami juga membatasi jumlah permintaan per menit untuk mencegah penyalahgunaan. Daftar ini dapat berubah sewaktu-waktu. Bila Anda menilai sebuah situs diblokir secara keliru, kirim alamatnya ke <a href="mailto:admin@gowithdme.com">admin@gowithdme.com</a>.</p>
+<h3>2.2 Akibat pelanggaran</h3>
 <p>Pelanggaran dapat berakibat pemblokiran. Untuk pelanggaran pidana, kami dapat bekerja sama dengan pihak berwenang sebagaimana diwajibkan hukum.</p>
 </section>
 
@@ -101,14 +104,15 @@
 <tr><td>Situs yang dibuka</td><td>Nama situs (host) dan path <b>tanpa</b> query dan hash</td></tr>
 <tr><td>Teknis</td><td>Mode (proxy/langsung), status HTTP, waktu muat, ukuran data, lebar layar, jenis perangkat (HP/tablet/desktop), dua huruf bahasa browser, situs perujuk (host saja)</td></tr>
 <tr><td>Kode acak</td><td>Satu kode per kunjungan (sessionStorage) dan satu kode per perangkat (localStorage), dibuat acak di browser Anda</td></tr>
-<tr><td>Catatan proxy</td><td>Host, path, status, waktu respons, dan ukuran data permintaan yang lewat proxy</td></tr>
+<tr><td>Catatan proxy</td><td>Host, path, status, waktu respons, dan ukuran data permintaan yang lewat proxy; termasuk penolakan karena daftar blokir atau batas pemakaian (tanpa IP)</td></tr>
+<tr><td>Laporan situs</td><td>Hanya bila Anda menekan "Laporkan situs ini": host, path tanpa query, alasan yang Anda pilih, dan kode kunjungan acak (bila pencatatan aktif)</td></tr>
 </tbody></table></div>
 
 <h3>3.2 Data yang tidak dicatat</h3>
 <p>Alamat IP (di basis data kami), cookie, kata pencarian, query URL, isi halaman, isi formulir, kata sandi, dan identitas akun. Pencatatan mati otomatis bila Do Not Track aktif atau Anda mematikannya di <a href="#pelacakan">Pengaturan pelacakan</a>.</p>
 
 <h3>3.3 Tujuan dan dasar pemrosesan</h3>
-<p>Kami memakai data untuk menghitung jumlah kunjungan, memahami situs dan mode yang sering dipakai, menemukan situs bermasalah, mengukur kinerja proxy, serta mencegah penyalahgunaan. Dasarnya adalah persetujuan Anda setelah membaca pemberitahuan ini (yang dapat Anda tarik kapan saja) dan kepentingan yang sah untuk menjaga keamanan dan kinerja Layanan. Data tidak dijual dan tidak dipakai untuk iklan atau profil perorangan.</p>
+<p>Kami memakai data untuk menghitung jumlah kunjungan, memahami situs dan mode yang sering dipakai, menemukan situs bermasalah, mengukur kinerja proxy, serta mencegah penyalahgunaan, termasuk memoderasi situs berbahaya lewat daftar blokir dan laporan pengguna. Dasarnya adalah persetujuan Anda setelah membaca pemberitahuan ini (yang dapat Anda tarik kapan saja) dan kepentingan yang sah untuk menjaga keamanan dan kinerja Layanan. Data tidak dijual dan tidak dipakai untuk iklan atau profil perorangan.</p>
 
 <h3>3.4 Penyimpanan di perangkat Anda</h3>
 <p>Layanan tidak memasang cookie. Layanan memakai penyimpanan browser (localStorage dan sessionStorage) untuk:</p>
@@ -123,7 +127,7 @@
 <h3>3.5 Pihak ketiga dan pemroses</h3>
 <ul>
   <li><b>GitHub Pages</b>: menyajikan halaman ini.</li>
-  <li><b>Cloudflare (Workers)</b>: menjalankan proxy; alamat IP Anda diproses secara teknis oleh Cloudflare untuk menjawab permintaan.</li>
+  <li><b>Cloudflare (Workers)</b>: menjalankan proxy; alamat IP Anda diproses secara teknis oleh Cloudflare untuk menjawab permintaan, termasuk untuk membatasi jumlah permintaan per menit. IP hanya dipakai sementara untuk batas itu dan tidak kami simpan atau catat.</li>
   <li><b>Supabase</b>: menyimpan catatan lalu lintas anonim.</li>
   <li><b>Google Fonts</b>: memuat huruf; Google menerima alamat IP Anda saat memuatnya.</li>
   <li><b>DuckDuckGo</b>: bila Anda mengetik kata pencarian (bukan alamat situs), kata itu dikirim ke mesin pencari ini. Kami sendiri tidak mencatatnya.</li>
@@ -135,7 +139,7 @@
 <p>Tabel lalu lintas tertutup dari akses langsung klien; data hanya dibaca lewat fungsi khusus oleh admin yang berizin. Admin berizin dapat melihat statistik dan linimasa kunjungan anonim (urutan situs dan aksi dalam satu kunjungan); akses linimasa dicatat dalam log audit. Penulisan data dibatasi jenis, ukuran, dan frekuensinya.</p>
 
 <h3>3.7 Lama penyimpanan</h3>
-<p>Catatan lalu lintas disimpan paling lama 90 hari, lalu dihapus. Penyimpanan lebih singkat dapat berlaku bila diminta atau diperlukan.</p>
+<p>Catatan lalu lintas dan laporan situs disimpan paling lama 90 hari, lalu dihapus. Daftar blokir dan peringatan (berisi nama situs dan alasan, bukan data pengguna) disimpan selama masih diperlukan. Penyimpanan lebih singkat dapat berlaku bila diminta atau diperlukan.</p>
 
 <h3>3.8 Hak Anda</h3>
 <p>Sesuai UU PDP, Anda berhak meminta informasi, akses, pembetulan, penghapusan, penarikan persetujuan, dan keberatan atas pemrosesan data pribadi Anda. Karena data kami anonim, kami hanya bisa menemukan catatan Anda bila Anda menyertakan <b>kode perangkat</b> yang tampil di <a href="#pelacakan">Pengaturan pelacakan</a>. Kirim permintaan ke <a href="mailto:personal@gowithdme.com">personal@gowithdme.com</a>; kami berupaya menanggapi dalam waktu yang wajar. Anda juga dapat mematikan pencatatan sendiri kapan saja.</p>
@@ -153,7 +157,8 @@
 <ul>
   <li>Cookie tidak diteruskan, sehingga login tidak berfungsi lewat proxy.</li>
   <li>Jangan memasukkan kata sandi, nomor kartu, atau data sensitif lewat mode proxy. Gunakan "Buka di tab baru" untuk situs seperti itu.</li>
-  <li>Proxy memblokir alamat jaringan internal dan dapat membatasi permintaan berlebihan.</li>
+  <li>Proxy memblokir alamat jaringan internal, menolak situs di daftar blokir, menampilkan peringatan untuk situs di daftar peringatan, dan membatasi permintaan berlebihan per alamat IP (IP tidak disimpan).</li>
+  <li>Di mode Langsung, daftar blokir dan peringatan hanya dicek di halaman ini dan tidak dapat ditegakkan sepenuhnya, karena situs dibuka oleh browser Anda sendiri.</li>
   <li>Halaman dapat berubah tampilan atau fungsinya karena penulisan ulang; kami tidak menjamin hasilnya sama dengan situs asli.</li>
   <li>Mode Langsung membuka situs lewat browser Anda sendiri tanpa melewati proxy.</li>
 </ul>

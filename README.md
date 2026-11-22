@@ -56,3 +56,22 @@ Pasang berurutan:
 Yang dicatat: jenis aksi, nama situs, path tanpa query/hash, mode (proxy/langsung), status HTTP, waktu muat, ukuran data, ukuran layar, dan kode acak per browser. Tidak dicatat: IP, cookie, kata pencarian, isi halaman. Mati otomatis bila Do Not Track aktif. Perbarui Kebijakan Privasi agar menyebut pencatatan ini.
 
 Keamanan: tabel tertutup untuk klien (RLS tanpa policy). Penulisan hanya lewat `browser_log()` yang membatasi jenis peristiwa, panjang teks, 25 peristiwa per panggilan, dan 150 per menit per kunjungan. Peristiwa dari proxy hanya diterima bila membawa `LOG_SECRET`. Data lama dibersihkan dari panel (pemilik) atau lewat pg_cron (lihat akhir file SQL).
+
+
+## Moderasi: daftar blokir, peringatan, laporan, batas pemakaian
+Pemilik mengelola di **admin.gowithdme.com > Statistik > Moderasi**.
+
+- **Daftar blokir/peringatan** (`browser_blocklist`): host (subdomain ikut tercakup). Worker memuatnya dari Supabase tiap ~60 detik (`browser_blocklist_get`, butuh `LOG_SECRET`). `block` menampilkan halaman blokir; `warn` menampilkan halaman peringatan, pilihan "Lanjutkan" diingat selama sesi tab (alamat `/q/` = sudah dikonfirmasi). Bila Supabase tidak terjangkau, aturan terakhir tetap dipakai; bila belum pernah termuat, proxy tetap melayani (fail-open).
+- **Mode Langsung tidak bisa ditegakkan** (situs dibuka langsung oleh browser pengguna). `js/moderasi.js` hanya mencegah di halaman ini dan bisa dilewati. Untuk penegakan penuh, paksa mode Proxy.
+- **Laporan pengguna**: menu browser > "Laporkan situs ini" (`browser_report`, dibatasi 5 per 10 menit per kunjungan dan 300 per jam global). Panel admin menampilkan per situs dengan tombol Blokir / Beri peringatan / Abaikan.
+- **Batas pemakaian**: binding Cloudflare Rate Limiting `RL_DOC` (halaman, 60/menit) dan `RL_ALL` (semua permintaan, 900/menit) per IP per lokasi, diatur di `worker/wrangler.toml`. Tanpa binding, Worker memakai penghitung cadangan di memori. IP hanya dipakai sementara, tidak disimpan atau dicatat. Butuh Wrangler 4.36+: `npx wrangler@latest deploy`.
+
+Pasang berurutan: (1) Supabase SQL Editor: jalankan `supabase/schema_moderasi.sql` (setelah `schema_browser.sql`); (2) `cd worker && npx wrangler@latest deploy`; (3) unggah situs ini; (4) unggah repo admin yang baru (`js/admin-moderasi.js`, `js/admin-stats.js`, `index.html`).
+
+Peristiwa moderasi tercatat sebagai peristiwa proxy dengan `meta.type` = `blocked` | `warned` | `limited` (status 403/200/429). Penolakan ikut terhitung di statistik "galat" proxy; `limited` dicatat 10% saja agar banjir permintaan tidak membengkakkan tabel.
+
+## Aktivitas per kunjungan (SQL)
+`supabase/schema_browser_activity.sql` menambah `admin_browser_sessions()` (daftar kunjungan) dan `admin_browser_session(sid)` (linimasa satu kunjungan, dicatat di log audit). Belum ada tampilannya di panel; panggil lewat SQL Editor atau `sb.rpc(...)`.
+
+## Halaman legal
+`legal.html` memuat Syarat, Penggunaan terlarang, Kebijakan Privasi, Mode proxy, Pengaturan pelacakan (tombol matikan pencatatan dan kode perangkat), Hak cipta, dan Kontak. Footer di `index.html` menautkannya. Ikon: `assets/` (sama dengan repo admin).

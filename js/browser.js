@@ -179,6 +179,13 @@
       if (PROXY) proxied = true;
       else return say("Alamat http:// tidak bisa ditampilkan di halaman aman ini. Coba pakai https://");
     }
+    /* Moderasi (lunak): "block" ditolak di semua mode. "warn" ditanyakan di mode Langsung; mode Proxy menampilkan peringatan sendiri dari Worker. */
+    var rule = window.GWD_MOD && window.GWD_MOD.match(url);
+    if (rule && rule.action === "block") return say("Situs ini diblokir oleh admin dan tidak bisa dibuka lewat browser ini.");
+    if (rule && rule.action === "warn" && !proxied && !window.GWD_MOD.isAcked(rule.host)) {
+      if (!window.confirm(host(url) + " ditandai bermasalah. Jangan memasukkan kata sandi atau data pribadi di sana. Tetap lanjutkan?")) return;
+      window.GWD_MOD.ack(rule.host);
+    }
     t.proxied = proxied; t.pending = true; t.t0 = Date.now();
     t.url = url; t.title = host(url);
     /* Catat hanya situs & path (tanpa query). Kata pencarian tidak dikirim. */
@@ -253,6 +260,14 @@
     item("Buka di tab baru (browser)", function () { if (active && active.url) window.open(active.url, "_blank", "noopener,noreferrer"); });
     item("Mode fokus (sembunyikan bar)", function () { setFocus(true); });
     item("Layar penuh", function () { var el = active && active.pane; if (el && el.requestFullscreen) el.requestFullscreen(); });
+    if (active && active.url && window.GWD_MOD) {
+      section("Laporkan situs ini");
+      [["berbahaya", "Berbahaya atau malware"], ["penipuan", "Penipuan atau phishing"], ["dewasa", "Konten dewasa"], ["lainnya", "Lainnya"]].forEach(function (r) {
+        item(r[1], function () {
+          window.GWD_MOD.report(active.url, r[0]).then(function (ok) { flash(ok ? "Terima kasih, laporan terkirim." : "Laporan gagal dikirim. Coba lagi nanti."); });
+        });
+      });
+    }
     section("Tampilan");
     THEMES.forEach(function (t) { item((theme === t ? "\u2713 " : "\u2003") + "Tema " + THEME_LABEL[t].slice(2).toLowerCase(), function () { setTheme(t); }); });
     item((darkPages ? "\u2713 " : "\u2003") + "Gelapkan halaman situs (eksperimental)", function () { setDarkPages(!darkPages); });
