@@ -6,7 +6,7 @@ window.GWD_CONFIG = {
 
   /* Alamat Worker proxy (lihat worker/proxy.js), tanpa garis miring di akhir.
      Contoh: "https://gowithdme-proxy.akunmu.workers.dev". Pakai domain terpisah dari gowithdme.com. */
-  PROXY_URL: "",
+  PROXY_URL: "https://gowithdme-proxy.calvfinka.workers.dev",
 
   /* Mesin pencari untuk kata kunci yang bukan alamat situs */
   SEARCH_URL: "https://html.duckduckgo.com/html/?q=",
