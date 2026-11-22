@@ -3,54 +3,71 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Uji Situs di Browser Lain · GoWithDME</title>
-<meta name="description" content="Buka situsmu di Chrome, Firefox, atau Edge langsung dari browser. Sesi singkat, tanpa pasang apa pun.">
+<title>Browser · GoWithDME</title>
+<meta name="description" content="Buka situs apa saja di dalam halaman: tab, riwayat, bookmark, dan ukuran layar HP, tablet, desktop.">
 <link rel="icon" href="https://gowithdme.com/favicon.ico">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="css/style.css">
+<link rel="stylesheet" href="css/browser.css">
 </head>
 <body>
 <header class="top">
   <a class="brand" href="https://gowithdme.com/">GoWith<span>DME</span></a>
-  <span class="tag">Uji browser</span>
+  <span class="tag">Browser</span>
 </header>
 
-<main class="layout">
-  <aside class="panel" aria-label="Pengaturan sesi">
-    <div class="timer" id="timerBox">
-      <span id="timerText">Sesi singkat, maksimal <b id="maxMin">5</b> menit.</span>
-    </div>
+<div class="tabs" id="tabs" role="tablist" aria-label="Tab"></div>
 
-    <form id="sessionForm" novalidate>
-      <label for="os">Sistem operasi</label>
-      <select id="os"></select>
+<div class="bar">
+  <button type="button" id="back" title="Mundur" aria-label="Mundur">&#8592;</button>
+  <button type="button" id="fwd" title="Maju" aria-label="Maju">&#8594;</button>
+  <button type="button" id="reload" title="Muat ulang" aria-label="Muat ulang">&#8635;</button>
+  <button type="button" id="home" title="Beranda" aria-label="Beranda">&#8962;</button>
+  <form id="form" novalidate>
+    <input id="url" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
+           placeholder="Ketik alamat situs atau kata pencarian" aria-label="Alamat atau pencarian">
+  </form>
+  <button type="button" id="star" title="Bookmark" aria-label="Bookmark">&#9734;</button>
+  <button type="button" id="menuBtn" title="Menu" aria-label="Menu" aria-haspopup="true">&#8942;</button>
+  <div class="menu" id="menu" hidden></div>
+</div>
 
-      <label for="browser">Browser</label>
-      <select id="browser"></select>
+<div class="bar opts">
+  <label>Mode
+    <select id="mode">
+      <option value="proxy">Proxy (bisa buka hampir semua situs)</option>
+      <option value="direct">Langsung (tanpa proxy)</option>
+    </select>
+  </label>
+  <label>Layar
+    <select id="size">
+      <option value="0">Penuh</option>
+      <option value="360">HP 360 px</option>
+      <option value="768">Tablet 768 px</option>
+      <option value="1280">Desktop 1280 px</option>
+    </select>
+  </label>
+  <span class="info" id="info" role="status" aria-live="polite"></span>
+</div>
+<div class="load" id="load" hidden></div>
 
-      <label for="url">Alamat situs</label>
-      <input id="url" type="text" inputmode="url" autocomplete="off" placeholder="gowithdme.com">
+<div class="notice" id="notice" hidden>
+  <span id="noticeText"></span>
+  <button type="button" id="tryProxy" hidden>Coba lewat proxy</button>
+  <a id="openTab" href="#" target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
+</div>
 
-      <button type="submit" id="startBtn" class="primary">Mulai sesi</button>
-      <button type="button" id="endBtn" class="ghost" hidden>Akhiri sesi</button>
-    </form>
-
-    <p id="msg" class="msg" role="status" aria-live="polite" hidden></p>
-  </aside>
-
-  <section class="stage" id="stage" aria-label="Layar browser">
-    <div class="empty" id="empty">
-      <h1>Lihat situsmu di browser lain</h1>
-      <p>Pilih browser dan alamat situs, lalu tekan Mulai sesi. Layar browser akan tampil di sini.</p>
-    </div>
-  </section>
+<main class="stage" id="stage" aria-label="Halaman">
+  <div class="empty" id="empty">
+    <h1>Browser GoWithDME</h1>
+    <p>Ketik alamat situs atau kata pencarian di atas. Tab, riwayat, dan bookmark tersimpan di perangkatmu.</p>
+    <div class="quick" id="quick"></div>
+  </div>
 </main>
 
 <script src="js/config.js"></script>
-<script src="js/api.js"></script>
-<script src="js/timer.js"></script>
-<script src="js/app.js"></script>
+<script src="js/browser.js"></script>
 </body>
 </html>

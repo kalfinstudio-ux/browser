@@ -1,0 +1,7 @@
+name = "gowithdme-proxy"
+main = "proxy.js"
+compatibility_date = "2025-01-01"
+
+[vars]
+# Asal halaman yang boleh memakai proxy ini (pisahkan dengan koma)
+ALLOWED_ORIGINS = "https://browser.gowithdme.com"
