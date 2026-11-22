@@ -19,6 +19,32 @@
 <link rel="stylesheet" href="css/browser.css">
 </head>
 <body>
+
+<!-- Ikon (SVG sprite) -->
+<svg width="0" height="0" style="position:absolute" aria-hidden="true" focusable="false">
+  <defs>
+    <symbol id="i-back" viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></symbol>
+    <symbol id="i-fwd" viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></symbol>
+    <symbol id="i-reload" viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.6-6.1"/><path d="M20.5 4v5h-5"/></symbol>
+    <symbol id="i-x" viewBox="0 0 24 24"><path d="M18 6L6 18M6 6l12 12"/></symbol>
+    <symbol id="i-home" viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h5v-6h4v6h5V10"/></symbol>
+    <symbol id="i-star" viewBox="0 0 24 24"><path d="M12 3l2.9 5.9 6.5.9-4.7 4.6 1.1 6.5L12 17.8 6.2 20.9l1.1-6.5L2.6 9.8l6.5-.9z"/></symbol>
+    <symbol id="i-dots" viewBox="0 0 24 24"><path d="M12 5h.01M12 12h.01M12 19h.01" stroke-width="3"/></symbol>
+    <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="10" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></symbol>
+    <symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18M12 3a14 14 0 0 0 0 18"/></symbol>
+    <symbol id="i-search" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/></symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4"/></symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24"><path d="M20.5 13.2A8.5 8.5 0 1 1 10.8 3.5a6.8 6.8 0 0 0 9.7 9.7z"/></symbol>
+    <symbol id="i-auto" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/></symbol>
+    <symbol id="i-ext" viewBox="0 0 24 24"><path d="M14 4h6v6M20 4l-9 9"/><path d="M18 14v6H4V6h6"/></symbol>
+    <symbol id="i-history" viewBox="0 0 24 24"><path d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1"/><path d="M3.5 4v5h5M12 7.5V12l3 2"/></symbol>
+    <symbol id="i-alert" viewBox="0 0 24 24"><path d="M12 3l10 18H2z"/><path d="M12 10v5M12 18h.01"/></symbol>
+  </defs>
+</svg>
+
+<a class="skip" href="#stage">Lompat ke halaman</a>
+
 <header class="top">
   <a class="brand" href="https://gowithdme.com/"><img src="assets/favicon.svg" alt="" width="26" height="26">GoWith<span>DME</span></a>
   <span class="tag">Browser</span>
@@ -27,24 +53,30 @@
 
 <div class="tabs" id="tabs" role="tablist" aria-label="Tab"></div>
 
-<div class="bar">
-  <button type="button" id="back" title="Mundur" aria-label="Mundur">&#8592;</button>
-  <button type="button" id="fwd" title="Maju" aria-label="Maju">&#8594;</button>
-  <button type="button" id="reload" title="Muat ulang" aria-label="Muat ulang">&#8635;</button>
-  <button type="button" id="home" title="Beranda" aria-label="Beranda">&#8962;</button>
-  <form id="form" novalidate>
+<div class="bar toolbar">
+  <div class="navgrp">
+    <button type="button" class="ib" id="back" title="Mundur (Alt+←)" aria-label="Mundur" disabled><svg class="ic"><use href="#i-back"/></svg></button>
+    <button type="button" class="ib" id="fwd" title="Maju (Alt+→)" aria-label="Maju" disabled><svg class="ic"><use href="#i-fwd"/></svg></button>
+    <button type="button" class="ib" id="reload" title="Muat ulang" aria-label="Muat ulang" disabled><svg class="ic"><use href="#i-reload"/></svg></button>
+    <button type="button" class="ib" id="home" title="Beranda" aria-label="Beranda"><svg class="ic"><use href="#i-home"/></svg></button>
+  </div>
+  <form id="form" class="omni" novalidate role="search">
+    <svg class="ic lead" id="secIcon" aria-hidden="true"><use href="#i-search"/></svg>
     <input id="url" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false"
-           placeholder="Ketik alamat situs atau kata pencarian" aria-label="Alamat atau pencarian">
+           placeholder="Ketik alamat situs atau kata pencarian" aria-label="Alamat atau pencarian"
+           role="combobox" aria-autocomplete="list" aria-expanded="false" aria-controls="sugg">
+    <span class="chip" id="modeChip" hidden></span>
+    <button type="button" class="ib inl" id="star" title="Bookmark" aria-label="Bookmark" aria-pressed="false" disabled><svg class="ic"><use href="#i-star"/></svg></button>
+    <ul class="sugg" id="sugg" role="listbox" aria-label="Saran" hidden></ul>
   </form>
-  <button type="button" id="star" title="Bookmark" aria-label="Bookmark">&#9734;</button>
-  <button type="button" id="menuBtn" title="Menu" aria-label="Menu" aria-haspopup="true">&#8942;</button>
-  <div class="menu" id="menu" hidden></div>
+  <button type="button" class="ib" id="menuBtn" title="Menu" aria-label="Menu" aria-haspopup="true" aria-expanded="false" aria-controls="menu"><svg class="ic"><use href="#i-dots"/></svg></button>
+  <div class="menu" id="menu" role="menu" hidden></div>
 </div>
 
 <div class="bar opts">
-  <label>Mode
+  <label title="Proxy disarankan: situs yang melarang iframe tetap bisa dibuka. Langsung: dimuat apa adanya.">Mode
     <select id="mode">
-      <option value="proxy">Proxy (disarankan)</option>
+      <option value="proxy">Proxy</option>
       <option value="direct">Langsung</option>
     </select>
   </label>
@@ -58,22 +90,28 @@
   </label>
   <span class="info" id="info" role="status" aria-live="polite"></span>
 </div>
-<div class="load" id="load" hidden></div>
+<div class="load" id="load" hidden role="progressbar" aria-label="Memuat"></div>
 
-<div class="notice" id="notice" hidden>
+<div class="notice" id="notice" hidden role="status">
+  <svg class="ic"><use href="#i-alert"/></svg>
   <span id="noticeText"></span>
-  <button type="button" id="tryProxy" hidden>Coba lewat proxy</button>
-  <a id="openTab" href="#" target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
+  <span class="acts">
+    <button type="button" id="tryProxy" hidden>Coba lewat proxy</button>
+    <a id="openTab" href="#" target="_blank" rel="noopener noreferrer">Buka di tab baru <svg class="ic sm"><use href="#i-ext"/></svg></a>
+    <button type="button" class="ib sm" id="noticeX" title="Tutup" aria-label="Tutup pemberitahuan"><svg class="ic"><use href="#i-x"/></svg></button>
+  </span>
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
 <button type="button" class="exitFocus" id="exitFocus" hidden aria-label="Keluar mode fokus">Keluar fokus</button>
 
-<main class="stage" id="stage" aria-label="Halaman">
+<main class="stage" id="stage" aria-label="Halaman" tabindex="-1">
   <div class="empty" id="empty">
+    <img class="hero" src="assets/favicon.svg" alt="" width="56" height="56">
     <h1>Browser GoWithDME</h1>
     <p>Ketik alamat situs atau kata pencarian di atas. Tab, riwayat, dan bookmark tersimpan di perangkatmu.</p>
     <div class="dial" id="dial"></div>
+    <p class="hint">Pintasan: <kbd>Ctrl</kbd>+<kbd>L</kbd> alamat · <kbd>Alt</kbd>+<kbd>T</kbd> tab baru · <kbd>Alt</kbd>+<kbd>W</kbd> tutup tab</p>
   </div>
 </main>
 
@@ -89,6 +127,8 @@
   </nav>
   <span class="note">Situs yang dibuka adalah tanggung jawab pemiliknya. Lalu lintas dicatat secara anonim.</span>
 </footer>
+
+<noscript><p style="padding:20px;text-align:center">Browser ini membutuhkan JavaScript.</p></noscript>
 
 <script src="js/config.js"></script>
 <script src="js/track.js"></script>
