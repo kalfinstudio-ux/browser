@@ -2,7 +2,7 @@
 window.GWD_CONFIG = {
   /* Alamat server sesi (VPS), tanpa garis miring di akhir. Contoh: "https://sesi.gowithdme.com/api".
      Selama kosong, tombol Mulai sesi menampilkan pesan bahwa server belum diatur. */
-  API_URL: "",
+  API_URL: "https://gowithdme-proxy.calvfinka .workers.dev",
 
   /* Alamat Worker proxy (lihat worker/proxy.js), tanpa garis miring di akhir.
      Contoh: "https://gowithdme-proxy.akunmu.workers.dev". Pakai domain terpisah dari gowithdme.com. */
