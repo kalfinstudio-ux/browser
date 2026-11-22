@@ -152,9 +152,7 @@ body.focus .stage{margin:0;border:0;border-radius:0}
   .chip{display:none}
 }
 @media (max-width:700px){
-  .foot{font-size:.7rem;justify-content:center;text-align:center}
-  .foot nav{justify-content:center}
-  .foot .note{margin:0;flex-basis:100%}
+  .foot{display:none}   /* di HP, tautan legal pindah ke menu (bagian Informasi) */
 }
 @media (max-width:640px){
   .top{padding-left:12px;padding-right:12px}
@@ -166,11 +164,11 @@ body.focus .stage{margin:0;border:0;border-radius:0}
   .ib{width:34px;height:34px}
   .omni{height:38px;padding-left:10px}
   #home{display:none}
-  .opts{flex-wrap:nowrap;overflow-x:auto;scrollbar-width:none;gap:10px}
-  .opts::-webkit-scrollbar{display:none}
-  .opts label{flex:none}
-  .opts select{max-width:44vw}
+  .opts{flex-wrap:nowrap;gap:10px}
+  .opts label{flex:1 1 0;min-width:0}
+  .opts select{flex:1;min-width:0;width:100%;max-width:none}
   .info{margin-left:0;flex:none;white-space:nowrap}
+  .info:empty{display:none}
   .stage{margin:6px 8px 8px;border-radius:10px}
   .notice{margin:6px 8px 0}
   .empty{padding-top:28px;padding-left:12px;padding-right:12px}
