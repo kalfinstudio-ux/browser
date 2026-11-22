@@ -102,7 +102,7 @@ export const INJECT = "<script>(function(){" +
        - atau sentuhan jatuh di area <video> (geser maju, percepat, ketuk layar) dan tujuannya situs lain.
      Lapisan yang ketahuan diberi pointer-events:none agar sentuhan berikutnya menembus ke video. Pemanggil dapat objek jendela palsu
      (bukan null) supaya skrip iklan tidak beralih ke location.href. */
-  "var G={t:0,ghost:null,ui:false,v:false},BT=0,FE=null;try{FE=window.frameElement}catch(e){}" +
+  "var G={t:0,ghost:null,ui:false,v:false},BT=0,FE=null;ON=self.__gwdPG!==0;try{FE=window.frameElement}catch(e){}" +
   "function al(c){var m=String(c).match(/rgba?\\(([^)]+)\\)/);if(!m)return c==='transparent'?0:1;var p=m[1].split(/[ ,\\/]+/).filter(Boolean);return p.length>3?parseFloat(p[3])*(/%/.test(p[3])?0.01:1):1}" +
   "function gb(el,only){try{var w=el.ownerDocument.defaultView||window,cs=w.getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return false;" +
   "var r=el.getBoundingClientRect();if(r.width*r.height<(w.innerWidth||1)*(w.innerHeight||1)*0.04)return false;" +
@@ -120,7 +120,7 @@ export const INJECT = "<script>(function(){" +
   "function tap(e){try{var t=(e.composedPath&&e.composedPath()[0])||e.target;if(t&&t.nodeType!==1)t=t.parentElement;G.t=Date.now();G.ghost=t?fg(t):null;G.ui=ui(t);G.v=pv(e)}catch(x){}}" +
   "['pointerdown','touchstart','mousedown','pointerup','touchend','mouseup','click'].forEach(function(n){addEventListener(n,tap,true)});" +
   "function same(h,m){return !h||h===m||h.slice(-m.length-1)==='.'+m||m.slice(-h.length-1)==='.'+h}" +
-  "function bad(u){try{var n=Date.now();if(n-BT<1500)return true;if(n-G.t>2500)return false;if(G.ghost)return true;" +
+  "function bad(u){try{if(!ON)return false;var n=Date.now();if(n-BT<1500)return true;if(n-G.t>2500)return false;if(G.ghost)return true;" +
   "if(!u)return !G.ui||G.v;var m=new URL(real()).hostname,h=new URL(unp(u)||u,real()).hostname;return (!G.ui||G.v)&&!same(h,m)}catch(e){return false}}" +
   "function blk(u){try{BT=Date.now();if(G.ghost)G.ghost.style.setProperty('pointer-events','none','important');var h='';try{h=new URL(unp(u||'')||u||'',real()).hostname}catch(e){}top.postMessage({gwdProxy:1,blocked:h||'-'},'*')}catch(e){}}" +
   "function fake(){var d={write:function(){},writeln:function(){},close:function(){}};d.open=function(){return d};return {closed:false,close:function(){this.closed=true},focus:function(){},blur:function(){},postMessage:function(){},document:d,location:{href:'',assign:function(){},replace:function(){}}}}" +
@@ -128,7 +128,7 @@ export const INJECT = "<script>(function(){" +
   "if(out&&bad(u)){blk(u);return fake()}if(u&&out){opn(px(u));return null}if(u)arguments[0]=px(u);return W.apply(this,arguments)}}catch(e){}" +
   "try{var AC=HTMLElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{var g=(this.getAttribute('target')||'').toLowerCase();if(g&&g!=='_self'&&g!=='_top'&&g!=='_parent'&&bad(this.href)){blk(this.href);return}}catch(e){}return AC.apply(this,arguments)}}catch(e){}" +
   "addEventListener('click',function(e){try{if(e.defaultPrevented||e.button>1)return;var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(!a)return;" +
-  "if(G.ghost&&Date.now()-G.t<2500){e.preventDefault();e.stopImmediatePropagation();blk(a.href);return}var g=(a.getAttribute('target')||'').toLowerCase();" +
+  "if(ON&&G.ghost&&Date.now()-G.t<2500){e.preventDefault();e.stopImmediatePropagation();blk(a.href);return}var g=(a.getAttribute('target')||'').toLowerCase();" +
   "if(g==='_top'||g==='_parent'){e.preventDefault();location.href=a.href;return}" +
   "if((g&&g!=='_self')||e.ctrlKey||e.metaKey||e.shiftKey){if(!/^https?:/i.test(unp(a.href)))return;e.preventDefault();opn(a.href)}}catch(x){}},true);" +
   "try{var S=Element.prototype.setAttribute;Element.prototype.setAttribute=function(n,v){" +
@@ -193,9 +193,17 @@ export function matchRule(map, hostname) {
   const c = hostCandidates(hostname);
   for (let i = 0; i < c.length; i++) {
     const r = map.get(c[i]);
-    if (r) { if (r.action === "block") return r; if (!found) found = r; }
+    if (r && (r.action === "block" || r.action === "warn")) { if (r.action === "block") return r; if (!found) found = r; }
   }
   return found;
+}
+
+/* Aturan "popup_ok" (dari panel admin): situs ini dikecualikan dari pemblokir pop-up sentuhan. */
+export function popupOff(map, hostname) {
+  if (!map || !map.size) return false;
+  const c = hostCandidates(hostname);
+  for (let i = 0; i < c.length; i++) { const r = map.get(c[i]); if (r && r.action === "popup_ok") return true; }
+  return false;
 }
 
 export function esc(s) {
@@ -330,7 +338,8 @@ export default {
       if (Math.random() < 0.1) sendLog(env, ctx, buildLog("error", t, 429, 0, 0, { type: "limited", scope: wantsDoc ? "doc" : "all" }));
       return wantsDoc ? tooManyPage() : text(429, "Terlalu banyak permintaan. Coba lagi sebentar.");
     }
-    const rule = matchRule(await loadRules(env), t.hostname);
+    const rules = await loadRules(env);
+    const rule = matchRule(rules, t.hostname);
     if (rule && rule.action === "block") {
       sendLog(env, ctx, buildLog("error", t, 403, 0, 0, { type: "blocked" }));
       return wantsDoc ? blockedPage(t.hostname, rule.reason) : text(403, "Situs ini diblokir.");
@@ -385,7 +394,7 @@ export default {
       sendLog(env, ctx, buildLog(kind, t, up.status, Date.now() - t0, parseInt(up.headers.get("content-length") || "0", 10) || 0));
     }
 
-    if (ct.indexOf("text/html") >= 0) return rewriteHtml(up, init, t.href, url.origin);
+    if (ct.indexOf("text/html") >= 0) return rewriteHtml(up, init, t.href, url.origin, popupOff(rules, t.hostname));
 
     if (ct.indexOf("text/css") >= 0) {
       return new Response(rewriteCss(await up.text(), t.href, url.origin), init);
@@ -394,8 +403,9 @@ export default {
   }
 };
 
-function rewriteHtml(up, init, pageUrl, origin) {
+function rewriteHtml(up, init, pageUrl, origin, guardOff) {
   let base = pageUrl, injected = false;
+  const inj = guardOff ? "<script>self.__gwdPG=0</script>" + INJECT : INJECT;
 
   const attr = function (name) {
     return { element(el) {
@@ -406,7 +416,7 @@ function rewriteHtml(up, init, pageUrl, origin) {
 
   let style = "";
   const rw = new HTMLRewriter()
-    .on("head", { element(el) { injected = true; el.prepend(INJECT, { html: true }); } })
+    .on("head", { element(el) { injected = true; el.prepend(inj, { html: true }); } })
     .on("base", { element(el) {
       const v = el.getAttribute("href");
       if (v) { try { base = new URL(v, base).href; } catch (e) {} }
@@ -439,7 +449,7 @@ function rewriteHtml(up, init, pageUrl, origin) {
   ].forEach(function (p) { rw.on(p[0] + "[" + p[1] + "]", attr(p[1])); });
 
   /* Halaman tanpa <head>: suntik di akhir dokumen */
-  rw.onDocument({ end(end) { if (!injected) end.append(INJECT, { html: true }); } });
+  rw.onDocument({ end(end) { if (!injected) end.append(inj, { html: true }); } });
 
   return rw.transform(new Response(up.body, init));
 }

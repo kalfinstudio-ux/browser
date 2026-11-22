@@ -478,7 +478,7 @@
     lastBlockNote = now;
     h = String(h).replace(/[^A-Za-z0-9.\-]/g, "").slice(0, 60);
     flash("Pop-up iklan diblokir" + (h && h !== "-" ? ": " + h : ""));
-    T.log("notice", { host: h, mode: "proxy", meta: { type: "popup_blocked" } });
+    T.log("popup", { host: h, mode: "proxy", meta: { src: host(t.url) } });
   }
 
   /* Situs meminta tab baru (target=_blank, window.open, Ctrl+klik): buka sebagai tab di dalam browser ini.
