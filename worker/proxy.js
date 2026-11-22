@@ -102,6 +102,10 @@ const INJECT = "<script>(function(){" +
   "var r=H.call(this,s,t,u==null?u:px(u));tell();return r}}catch(e){}});" +
   "function tell(){try{parent.postMessage({gwdProxy:1,url:real(),title:document.title||''},'*')}catch(e){}}" +
   "addEventListener('DOMContentLoaded',tell);addEventListener('load',tell);addEventListener('popstate',tell);tell();" +
+  /* Laporan scroll ke browser induk (untuk menyembunyikan header): selisih posisi per frame; top=true bila dokumen di paling atas. */
+  "try{var LP=new WeakMap(),sq=0,sd=0,st=false;addEventListener('scroll',function(e){var t=e.target,doc=(t===document||t===window),el=doc?(document.scrollingElement||document.documentElement):t;" +
+  "if(!el||typeof el.scrollTop!=='number')return;var y=el.scrollTop,p=LP.get(el);LP.set(el,y);if(p==null)return;sd+=y-p;if(doc)st=y<=2;" +
+  "if(!sq){sq=1;requestAnimationFrame(function(){sq=0;var d=sd;sd=0;try{parent.postMessage({gwdProxy:1,sc:d,top:st},'*')}catch(x){}})}},true)}catch(e){}" +
   "})();</script>";
 
 /* ---------- pencatat lalu lintas ke Supabase (opsional) ----------
