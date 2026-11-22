@@ -8,7 +8,10 @@
 <script>(function(){try{var t=JSON.parse(localStorage.getItem("gwd.theme"))||"auto";var d=t==="dark"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light"}catch(e){}})();</script>
 <title>Browser · GoWithDME</title>
 <meta name="description" content="Buka situs apa saja di dalam halaman: tab, riwayat, bookmark, dan ukuran layar HP, tablet, desktop.">
-<link rel="icon" href="https://gowithdme.com/favicon.ico">
+<link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
+<link rel="icon" href="assets/favicon.ico" sizes="any">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
@@ -17,7 +20,7 @@
 </head>
 <body>
 <header class="top">
-  <a class="brand" href="https://gowithdme.com/">GoWith<span>DME</span></a>
+  <a class="brand" href="https://gowithdme.com/"><img src="assets/favicon.svg" alt="" width="26" height="26">GoWith<span>DME</span></a>
   <span class="tag">Browser</span>
   <button type="button" class="themeBtn" id="themeBtn" title="Ganti tema" aria-label="Ganti tema"></button>
 </header>
@@ -73,6 +76,19 @@
     <div class="dial" id="dial"></div>
   </div>
 </main>
+
+<footer class="foot" id="foot">
+  <span class="copy">&copy; 2026 GoWithDME</span>
+  <nav aria-label="Informasi legal">
+    <a href="legal.html#privasi" target="_blank" rel="noopener">Privasi</a>
+    <a href="legal.html#syarat" target="_blank" rel="noopener">Syarat</a>
+    <a href="legal.html#larangan" target="_blank" rel="noopener">Penggunaan terlarang</a>
+    <a href="legal.html#proxy" target="_blank" rel="noopener">Mode proxy</a>
+    <a href="legal.html#pelacakan" target="_blank" rel="noopener">Pengaturan pelacakan</a>
+    <a href="legal.html#kontak" target="_blank" rel="noopener">Kontak</a>
+  </nav>
+  <span class="note">Situs yang dibuka adalah tanggung jawab pemiliknya. Lalu lintas dicatat secara anonim.</span>
+</footer>
 
 <script src="js/config.js"></script>
 <script src="js/track.js"></script>

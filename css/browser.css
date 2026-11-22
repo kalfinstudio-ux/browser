@@ -72,3 +72,15 @@ body.focus .stage{margin:0;border:0;border-radius:0}
   .opts select{max-width:46vw}
 }
 @media (prefers-reduced-motion:reduce){*{transition:none!important}.load{animation:none;transform:scaleX(.9)}}
+
+/* Footer legal */
+.brand{display:inline-flex;align-items:center}
+.brand img{border-radius:7px;display:block;margin-right:8px}
+.foot{flex:none;display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;padding:6px 14px calc(6px + env(safe-area-inset-bottom));background:var(--card);border-top:1px solid var(--line);font-size:.72rem;color:var(--muted)}
+.foot nav{display:flex;flex-wrap:wrap;gap:2px 12px}
+.foot a{color:var(--muted);text-decoration:none;padding:3px 0}
+.foot a:hover{color:var(--text);text-decoration:underline}
+.foot .note{margin-left:auto}
+body{padding-bottom:0}
+body.focus .foot{display:none!important}
+@media (max-width:700px){.foot .note{display:none}.foot{font-size:.7rem}}
