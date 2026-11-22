@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Uji Situs di Browser Lain · GoWithDME</title>
+<meta name="description" content="Buka situsmu di Chrome, Firefox, atau Edge langsung dari browser. Sesi singkat, tanpa pasang apa pun.">
+<link rel="icon" href="https://gowithdme.com/favicon.ico">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+<header class="top">
+  <a class="brand" href="https://gowithdme.com/">GoWith<span>DME</span></a>
+  <span class="tag">Uji browser</span>
+</header>
+
+<main class="layout">
+  <aside class="panel" aria-label="Pengaturan sesi">
+    <div class="timer" id="timerBox">
+      <span id="timerText">Sesi singkat, maksimal <b id="maxMin">5</b> menit.</span>
+    </div>
+
+    <form id="sessionForm" novalidate>
+      <label for="os">Sistem operasi</label>
+      <select id="os"></select>
+
+      <label for="browser">Browser</label>
+      <select id="browser"></select>
+
+      <label for="url">Alamat situs</label>
+      <input id="url" type="text" inputmode="url" autocomplete="off" placeholder="gowithdme.com">
+
+      <button type="submit" id="startBtn" class="primary">Mulai sesi</button>
+      <button type="button" id="endBtn" class="ghost" hidden>Akhiri sesi</button>
+    </form>
+
+    <p id="msg" class="msg" role="status" aria-live="polite" hidden></p>
+  </aside>
+
+  <section class="stage" id="stage" aria-label="Layar browser">
+    <div class="empty" id="empty">
+      <h1>Lihat situsmu di browser lain</h1>
+      <p>Pilih browser dan alamat situs, lalu tekan Mulai sesi. Layar browser akan tampil di sini.</p>
+    </div>
+  </section>
+</main>
+
+<script src="js/config.js"></script>
+<script src="js/api.js"></script>
+<script src="js/timer.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
