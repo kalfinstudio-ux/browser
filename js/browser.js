@@ -167,6 +167,13 @@
   if (narrow && narrow.addEventListener) narrow.addEventListener("change", function () { setChrome(false); chrome.style.marginTop = ""; });
   window.addEventListener("resize", function () { if (chromeHidden) chrome.style.marginTop = -chrome.offsetHeight + "px"; });
 
+  /* ---------- sandbox iframe ----------
+     Sandbox menahan halaman situs dari mengalihkan seluruh browser ini. Sebagian situs video menolak tampil di iframe ber-sandbox
+     ("Sandboxed embed is not allowed"), jadi ada opsi "Mode video" di menu untuk mematikannya. Matikan hanya untuk situs yang dipercaya. */
+  var SANDBOX = "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads";
+  var noSandbox = !!load("gwd.nosandbox", false);
+  function applySandbox(frame) { if (noSandbox) frame.removeAttribute("sandbox"); else frame.setAttribute("sandbox", SANDBOX); }
+
   /* ---------- tab ---------- */
   var newBtn = document.createElement("button");
   newBtn.className = "newtab"; newBtn.type = "button"; newBtn.title = "Tab baru (Alt+T)"; newBtn.setAttribute("aria-label", "Tab baru");
@@ -307,8 +314,9 @@
     pane.className = "pane"; pane.hidden = true;
     var frame = document.createElement("iframe");
     frame.title = "Halaman situs";
-    frame.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-popups allow-popups-to-escape-sandbox allow-modals allow-downloads");
-    frame.allow = "fullscreen; clipboard-write; autoplay";
+    applySandbox(frame);
+    frame.allow = "fullscreen; clipboard-write; autoplay; encrypted-media; picture-in-picture";
+    frame.allowFullscreen = true;
     pane.appendChild(frame); stage.appendChild(pane);
     var t = { id: nextId++, title: "Tab baru", url: "", hist: [], idx: -1, pane: pane, frame: frame,
               proxied: false, pending: false, loading: false, lazy: false, blank: false, notice: null, timer: 0, t0: 0 };
@@ -544,6 +552,7 @@
     }
     section("Tampilan & pengaturan");
     THEMES.forEach(function (t) { item("Tema " + THEME_LABEL[t].toLowerCase(), function () { setTheme(t); }, { icon: THEME_ICON[t], check: theme === t }); });
+    item("Mode video (matikan sandbox)", function () { setNoSandbox(!noSandbox); }, { icon: "alert", check: noSandbox, title: "Aktifkan bila muncul pesan \"Sandboxed embed is not allowed\" atau video tidak bisa diputar" });
     item("Gelapkan halaman situs (eksperimental)", function () { setDarkPages(!darkPages); }, { icon: "moon", check: darkPages });
     item("Ingat tab saat dibuka lagi", function () { setRestore(!restoreTabs); }, { icon: "history", check: restoreTabs });
     section("Bookmark");
@@ -571,6 +580,16 @@
     if (refocus) menuB.focus();
   }
 
+  function setNoSandbox(on) {
+    if (on && !window.confirm("Mode video mematikan sandbox: halaman situs bisa mengalihkan seluruh browser ini atau membuka jendela sendiri. Pakai hanya untuk situs yang kamu percaya. Lanjutkan?")) return;
+    noSandbox = on; save("gwd.nosandbox", on);
+    tabs.forEach(function (t) {
+      applySandbox(t.frame);
+      if (t !== active && t.url) t.lazy = true;      /* tab lain dimuat ulang saat dibuka */
+    });
+    if (active && active.url) reloadTab(active);
+    flash(on ? "Mode video aktif (sandbox mati)" : "Mode video mati (sandbox aktif)", 3000);
+  }
   function setDarkPages(on) { darkPages = on; save("gwd.darkpages", on); document.body.classList.toggle("darkpages", on); flash(on ? "Halaman digelapkan (warna gambar bisa terbalik)" : "Halaman kembali normal"); }
   function setRestore(on) { restoreTabs = on; save("gwd.restore", on); if (!on) { try { localStorage.removeItem("gwd.tabs"); } catch (e) {} } else saveTabsNow(); flash(on ? "Tab akan diingat" : "Tab tidak lagi diingat"); }
   function setFocus(on) { document.body.classList.toggle("focus", on); exitFocus.hidden = !on; queueLayout(); if (on) flash("Mode fokus aktif. Tekan Esc untuk keluar."); else if (active) urlIn.blur(); }
