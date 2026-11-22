@@ -2,7 +2,10 @@
 <html lang="id">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light dark">
+<meta name="theme-color" content="#ffffff" id="themeColor">
+<script>(function(){try{var t=JSON.parse(localStorage.getItem("gwd.theme"))||"auto";var d=t==="dark"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light"}catch(e){}})();</script>
 <title>Browser · GoWithDME</title>
 <meta name="description" content="Buka situs apa saja di dalam halaman: tab, riwayat, bookmark, dan ukuran layar HP, tablet, desktop.">
 <link rel="icon" href="https://gowithdme.com/favicon.ico">
@@ -16,6 +19,7 @@
 <header class="top">
   <a class="brand" href="https://gowithdme.com/">GoWith<span>DME</span></a>
   <span class="tag">Browser</span>
+  <button type="button" class="themeBtn" id="themeBtn" title="Ganti tema" aria-label="Ganti tema"></button>
 </header>
 
 <div class="tabs" id="tabs" role="tablist" aria-label="Tab"></div>
@@ -37,8 +41,8 @@
 <div class="bar opts">
   <label>Mode
     <select id="mode">
-      <option value="proxy">Proxy (bisa buka hampir semua situs)</option>
-      <option value="direct">Langsung (tanpa proxy)</option>
+      <option value="proxy">Proxy (disarankan)</option>
+      <option value="direct">Langsung</option>
     </select>
   </label>
   <label>Layar
@@ -59,11 +63,14 @@
   <a id="openTab" href="#" target="_blank" rel="noopener noreferrer">Buka di tab baru</a>
 </div>
 
+<div class="toast" id="toast" role="status" aria-live="polite" hidden></div>
+<button type="button" class="exitFocus" id="exitFocus" hidden aria-label="Keluar mode fokus">Keluar fokus</button>
+
 <main class="stage" id="stage" aria-label="Halaman">
   <div class="empty" id="empty">
     <h1>Browser GoWithDME</h1>
     <p>Ketik alamat situs atau kata pencarian di atas. Tab, riwayat, dan bookmark tersimpan di perangkatmu.</p>
-    <div class="quick" id="quick"></div>
+    <div class="dial" id="dial"></div>
   </div>
 </main>
 

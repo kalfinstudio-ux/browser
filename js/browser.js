@@ -13,9 +13,26 @@
   var tabsEl = $("tabs"), form = $("form"), urlIn = $("url"), stage = $("stage"), empty = $("empty"),
       backB = $("back"), fwdB = $("fwd"), reloadB = $("reload"), homeB = $("home"), starB = $("star"),
       menuB = $("menuBtn"), menu = $("menu"), modeSel = $("mode"), sizeSel = $("size"), info = $("info"),
-      loadBar = $("load"), notice = $("notice"), noticeText = $("noticeText"), tryProxy = $("tryProxy"), openTab = $("openTab");
+      loadBar = $("load"), themeBtn = $("themeBtn"), toast = $("toast"), exitFocus = $("exitFocus"), dial = $("dial"), notice = $("notice"), noticeText = $("noticeText"), tryProxy = $("tryProxy"), openTab = $("openTab");
 
-  var tabs = [], active = null, nextId = 1, width = 0, noticeTimer = null;
+  var tabs = [], active = null, nextId = 1, width = 0, noticeTimer = null, toastTimer = null;
+
+  /* ---------- tema ---------- */
+  var THEMES = ["auto", "light", "dark"], THEME_LABEL = { auto: "\u25d1 Otomatis", light: "\u2600 Terang", dark: "\u263e Gelap" };
+  var theme = "auto", mq = window.matchMedia ? matchMedia("(prefers-color-scheme: dark)") : null;
+  function applyTheme() {
+    var dark = theme === "dark" || (theme === "auto" && mq && mq.matches);
+    document.documentElement.dataset.theme = dark ? "dark" : "light";
+    var m = $("themeColor"); if (m) m.setAttribute("content", dark ? "#161c19" : "#ffffff");
+    themeBtn.textContent = THEME_LABEL[theme];
+  }
+  function setTheme(t) { theme = t; save("gwd.theme", t); applyTheme(); }
+  if (mq && mq.addEventListener) mq.addEventListener("change", applyTheme);
+
+  function flash(text, ms) {
+    toast.textContent = text; toast.hidden = false;
+    clearTimeout(toastTimer); toastTimer = setTimeout(function () { toast.hidden = true; }, ms || 2200);
+  }
 
   /* ---------- penyimpanan ---------- */
   function load(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
@@ -88,6 +105,7 @@
 
     tabs.forEach(function (t) { t.pane.hidden = t !== active || !t.url; });
     empty.hidden = !!(active && active.url);
+    if (!empty.hidden) renderDial();
     if (document.activeElement !== urlIn) urlIn.value = active && active.url || "";
     backB.disabled = !active || active.idx <= 0;
     fwdB.disabled = !active || active.idx >= active.hist.length - 1;
@@ -99,9 +117,26 @@
     document.title = (active && active.url ? active.title + " · " : "") + "Browser GoWithDME";
   }
 
+  /* ---------- speed dial ---------- */
+  function renderDial() {
+    var items = bookmarks.slice(0, 8).map(function (b) { return { url: b.url, label: b.title || host(b.url) }; });
+    [["https://id.wikipedia.org", "Wikipedia"], ["https://gowithdme.com", "GoWithDME"], ["https://news.ycombinator.com", "Hacker News"]].forEach(function (d) {
+      if (items.length < 8 && !items.some(function (i) { return host(i.url) === host(d[0]); })) items.push({ url: d[0], label: d[1] });
+    });
+    dial.textContent = "";
+    items.forEach(function (i) {
+      var b = document.createElement("button"); b.type = "button"; b.title = i.url;
+      var ic = document.createElement("i"); ic.textContent = (i.label || host(i.url)).charAt(0) || "?";
+      var sp = document.createElement("span"); sp.textContent = i.label;
+      b.appendChild(ic); b.appendChild(sp);
+      b.addEventListener("click", function () { openIn(i.url); });
+      dial.appendChild(b);
+    });
+  }
+
   /* ---------- tab ---------- */
   function newTab(url) {
-    if (tabs.length >= MAX_TABS) { say("Maksimal " + MAX_TABS + " tab. Tutup salah satu dulu."); return null; }
+    if (tabs.length >= MAX_TABS) { flash("Maksimal " + MAX_TABS + " tab. Tutup salah satu dulu."); return null; }
     var pane = document.createElement("div");
     pane.className = "pane"; pane.hidden = true;
     var frame = document.createElement("iframe");
@@ -170,7 +205,7 @@
 
   function submit(v) {
     var r = resolveInput(v);
-    if (!r) return say("Alamat tidak valid.");
+    if (!r) return flash("Alamat tidak valid.");
     if (!active) newTab();
     go(active, r.url, { search: r.search });
   }
@@ -207,7 +242,11 @@
   function openMenu() {
     menu.textContent = "";
     item("Buka di tab baru (browser)", function () { if (active && active.url) window.open(active.url, "_blank", "noopener,noreferrer"); });
+    item("Mode fokus (sembunyikan bar)", function () { setFocus(true); });
     item("Layar penuh", function () { var el = active && active.pane; if (el && el.requestFullscreen) el.requestFullscreen(); });
+    section("Tampilan");
+    THEMES.forEach(function (t) { item((theme === t ? "\u2713 " : "\u2003") + "Tema " + THEME_LABEL[t].slice(2).toLowerCase(), function () { setTheme(t); }); });
+    item((darkPages ? "\u2713 " : "\u2003") + "Gelapkan halaman situs (eksperimental)", function () { setDarkPages(!darkPages); });
     section("Bookmark");
     if (!bookmarks.length) none("Belum ada. Tekan bintang untuk menyimpan.");
     bookmarks.forEach(function (b) { item(b.title || b.url, function () { openIn(b.url); }); });
@@ -217,9 +256,14 @@
     if (history.length) item("Hapus riwayat", function () { history = []; save("gwd.history", history); });
     menu.hidden = false;
   }
+  var darkPages = !!load("gwd.darkpages", false);
+  function setDarkPages(on) { darkPages = on; save("gwd.darkpages", on); document.body.classList.toggle("darkpages", on); flash(on ? "Halaman digelapkan (warna gambar bisa terbalik)" : "Halaman kembali normal"); }
+  function setFocus(on) { document.body.classList.toggle("focus", on); exitFocus.hidden = !on; setTimeout(layout, 0); if (on) flash("Mode fokus aktif"); }
   function openIn(url) { if (!active) newTab(); go(active, url); }
 
   /* ---------- peristiwa ---------- */
+  themeBtn.addEventListener("click", function () { setTheme(THEMES[(THEMES.indexOf(theme) + 1) % 3]); flash("Tema: " + THEME_LABEL[theme].slice(2)); });
+  exitFocus.addEventListener("click", function () { setFocus(false); });
   form.addEventListener("submit", function (e) { e.preventDefault(); submit(urlIn.value); urlIn.blur(); });
   urlIn.addEventListener("focus", function () { urlIn.select(); });
   backB.addEventListener("click", function () { if (active.idx > 0) { active.idx--; go(active, active.hist[active.idx], { fromHistory: true, proxied: active.proxied }); } });
@@ -232,13 +276,16 @@
     if (!active || !active.url) return;
     var i = -1;
     bookmarks.forEach(function (b, k) { if (b.url === active.url) i = k; });
-    if (i >= 0) bookmarks.splice(i, 1); else bookmarks.unshift({ url: active.url, title: active.title });
+    if (i >= 0) { bookmarks.splice(i, 1); flash("Bookmark dihapus"); } else { bookmarks.unshift({ url: active.url, title: active.title }); flash("Bookmark disimpan"); }
     save("gwd.bookmarks", bookmarks); render();
   });
 
   menuB.addEventListener("click", function (e) { e.stopPropagation(); if (menu.hidden) openMenu(); else menu.hidden = true; });
   document.addEventListener("click", function (e) { if (!menu.hidden && !menu.contains(e.target)) menu.hidden = true; });
-  document.addEventListener("keydown", function (e) { if (e.key === "Escape") menu.hidden = true; });
+  document.addEventListener("keydown", function (e) {
+    if (e.key === "Escape") { menu.hidden = true; if (document.body.classList.contains("focus")) setFocus(false); }
+    if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "l") { e.preventDefault(); urlIn.focus(); }
+  });
 
   modeSel.addEventListener("change", function () {
     save("gwd.mode", modeSel.value);
@@ -248,13 +295,8 @@
   window.addEventListener("resize", layout);
 
   /* ---------- mulai ---------- */
-  var quick = $("quick");
-  [["gowithdme.com", "gowithdme.com"], ["Wikipedia", "https://id.wikipedia.org"], ["Cari: cuaca Jakarta", "cuaca Jakarta"]].forEach(function (q) {
-    var b = document.createElement("button"); b.type = "button"; b.textContent = q[0];
-    b.addEventListener("click", function () { submit(q[1]); });
-    quick.appendChild(b);
-  });
-
+  theme = load("gwd.theme", "auto"); applyTheme();
+  document.body.classList.toggle("darkpages", darkPages);
   modeSel.value = PROXY ? load("gwd.mode", "proxy") : "direct";
   if (!PROXY) modeSel.querySelector('[value="proxy"]').disabled = true;
 
