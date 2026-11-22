@@ -17,7 +17,7 @@
 create table if not exists browser_blocklist(
   host       text primary key
              check (length(host) <= 120 and host ~ '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$' and position('.' in host) > 0),
-  action     text not null check (action in ('block','warn')),
+  action     text not null check (action in ('block','warn','popup_ok')),
   reason     text check (reason is null or length(reason) <= 200),
   added_by   uuid default auth.uid(),
   created_at timestamptz not null default now(),
@@ -37,6 +37,10 @@ create table if not exists browser_reports(
 );
 create index if not exists browser_reports_open on browser_reports(status, at desc);
 create index if not exists browser_reports_host on browser_reports(host, at desc);
+
+-- Tabel lama: izinkan aksi 'popup_ok' (situs dikecualikan dari pemblokir pop-up sentuhan; tidak memblokir/memperingatkan apa pun)
+alter table browser_blocklist drop constraint if exists browser_blocklist_action_check;
+alter table browser_blocklist add constraint browser_blocklist_action_check check (action in ('block','warn','popup_ok'));
 
 alter table browser_blocklist enable row level security;
 alter table browser_reports   enable row level security;
@@ -108,7 +112,7 @@ language plpgsql security definer set search_path = public as $$
 declare h text := _mod_host(p_host); r text := left(nullif(btrim(regexp_replace(coalesce(p_reason, ''), '[[:cntrl:]]', ' ', 'g')), ''), 200);
 begin
   if not is_owner() then raise exception 'Hanya pemilik yang boleh mengubah daftar blokir.' using errcode = '42501'; end if;
-  if p_action not in ('block','warn') then raise exception 'Aksi harus block atau warn.' using errcode = '22023'; end if;
+  if p_action not in ('block','warn','popup_ok') then raise exception 'Aksi harus block, warn, atau popup_ok.' using errcode = '22023'; end if;
   if h is null or length(h) > 120 or h !~ '^[a-z0-9]([a-z0-9.-]*[a-z0-9])?$' or position('.' in h) = 0 then
     raise exception 'Nama situs tidak valid. Contoh: contoh.com' using errcode = '22023'; end if;
   insert into browser_blocklist(host, action, reason) values (h, p_action, r)
@@ -180,6 +184,26 @@ begin
 end $$;
 revoke all on function admin_moderation_stats(int) from public, anon;
 grant execute on function admin_moderation_stats(int) to authenticated;
+
+-- 8b) Panel admin: pop-up iklan yang diblokir proxy (jenis 'popup': host = tujuan iklan, meta.src = situs yang ditonton) ----
+create or replace function admin_popup_stats(p_days int default 30) returns jsonb
+language plpgsql stable security definer set search_path = public as $$
+declare since timestamptz := now() - make_interval(days => greatest(1, least(coalesce(p_days, 30), 365)));
+begin
+  if not has_perm('stats.view') then raise exception 'Tidak punya izin melihat statistik.' using errcode = '42501'; end if;
+  return jsonb_build_object(
+    'total', (select count(*) from browser_events where kind = 'popup' and at >= since),
+    'dests', (select coalesce(jsonb_agg(jsonb_build_object('k', host, 'n', n)), '[]'::jsonb) from (
+        select host, count(*) n from browser_events
+        where kind = 'popup' and at >= since and host is not null
+        group by host order by n desc limit 10) q),
+    'srcs', (select coalesce(jsonb_agg(jsonb_build_object('k', src, 'n', n)), '[]'::jsonb) from (
+        select lower(left(meta->>'src', 120)) as src, count(*) n from browser_events
+        where kind = 'popup' and at >= since and meta->>'src' ~ '^[A-Za-z0-9.-]+$'
+        group by 1 order by n desc limit 10) q));
+end $$;
+revoke all on function admin_popup_stats(int) from public, anon;
+grant execute on function admin_popup_stats(int) to authenticated;
 
 -- 9) Pembersihan laporan lama (khusus pemilik) -------------------------------------------
 create or replace function admin_reports_purge(p_days int default 90) returns int

@@ -18,7 +18,7 @@ create table if not exists browser_events(
   at        timestamptz not null default now(),
   src       text not null check (src in ('client','proxy')),
   kind      text not null check (kind in
-              ('open','nav','search','reload','load','notice','newtab','closetab','mode','size','bookmark','heartbeat','doc','asset','error')),
+              ('open','nav','search','reload','load','notice','newtab','closetab','mode','size','bookmark','heartbeat','doc','asset','error','popup')),
   sid       text,            -- kode acak per kunjungan (sessionStorage)
   vid       text,            -- kode acak per perangkat (localStorage)
   host      text,
@@ -33,6 +33,10 @@ create table if not exists browser_events(
   ref_host  text,
   meta      jsonb not null default '{}'::jsonb
 );
+-- Tabel lama: tambahkan jenis 'popup' (pop-up iklan yang diblokir proxy; host = tujuan iklan, meta.src = situs yang ditonton)
+alter table browser_events drop constraint if exists browser_events_kind_check;
+alter table browser_events add constraint browser_events_kind_check check (kind in
+  ('open','nav','search','reload','load','notice','newtab','closetab','mode','size','bookmark','heartbeat','doc','asset','error','popup'));
 create index if not exists browser_events_at   on browser_events(at desc);
 create index if not exists browser_events_sid  on browser_events(sid, at);
 create index if not exists browser_events_host on browser_events(host, at desc);
@@ -67,7 +71,7 @@ create or replace function browser_log(p_events jsonb, p_secret text default nul
 language plpgsql security definer set search_path = public as $$
 declare
   e jsonb; n int := 0; srcv text; k text; s text; h text; secret_ok boolean := false; recent int;
-  kinds_client constant text[] := array['open','nav','search','reload','load','notice','newtab','closetab','mode','size','bookmark','heartbeat'];
+  kinds_client constant text[] := array['open','nav','search','reload','load','notice','newtab','closetab','mode','size','bookmark','heartbeat','popup'];
   kinds_proxy  constant text[] := array['doc','asset','error'];
 begin
   if p_events is null or jsonb_typeof(p_events) <> 'array' then return 0; end if;
