@@ -90,7 +90,14 @@ const INJECT = "<script>(function(){" +
   "try{var F=window.fetch;if(F)window.fetch=function(i,o){try{if(typeof i==='string'||i instanceof URL)i=px(i);" +
   "else if(i&&i.url){var n=px(i.url);if(n!==i.url)i=new Request(n,i)}}catch(e){}return F.call(this,i,o)}}catch(e){}" +
   "try{var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){arguments[1]=px(u);return X.apply(this,arguments)}}catch(e){}" +
-  "try{var W=window.open;window.open=function(u){if(u)arguments[0]=px(u);return W.apply(this,arguments)}}catch(e){}" +
+  /* Tab/jendela baru dari situs diteruskan ke browser induk supaya dibuka sebagai tab di dalam aplikasi, bukan tab browser asli.
+     Hanya bila ada interaksi pengguna (klik), agar iklan pop-up otomatis tidak membanjiri tab. */
+  "function unp(h){try{var a=new URL(h,location.href);if(a.origin===O&&/^\\/[pq]\\//.test(a.pathname))return (a.pathname.slice(3)+a.search+a.hash).replace(/^(https?):\\/+/i,'$1://');return a.href}catch(e){return ''}}" +
+  "function opn(u){try{if(navigator.userActivation&&!navigator.userActivation.isActive)return false;u=unp(u);if(!/^https?:/i.test(u))return false;parent.postMessage({gwdProxy:1,open:u},'*');return true}catch(e){return false}}" +
+  "try{var W=window.open;window.open=function(u,n,f){var g=String(n||'_blank').toLowerCase();if(u&&g!=='_self'&&g!=='_top'&&g!=='_parent'){opn(px(u));return null}if(u)arguments[0]=px(u);return W.apply(this,arguments)}}catch(e){}" +
+  "addEventListener('click',function(e){try{if(e.defaultPrevented||e.button>1)return;var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(!a)return;var g=(a.getAttribute('target')||'').toLowerCase();" +
+  "if(g==='_top'||g==='_parent'){e.preventDefault();location.href=a.href;return}" +
+  "if((g&&g!=='_self')||e.ctrlKey||e.metaKey||e.shiftKey){if(!/^https?:/i.test(unp(a.href)))return;e.preventDefault();opn(a.href)}}catch(x){}},true);" +
   "try{var S=Element.prototype.setAttribute;Element.prototype.setAttribute=function(n,v){" +
   "if(typeof v==='string'&&/^(src|href|action|poster|data)$/i.test(n))v=px(v);return S.call(this,n,v)}}catch(e){}" +
   "[['HTMLImageElement','src'],['HTMLScriptElement','src'],['HTMLIFrameElement','src'],['HTMLLinkElement','href']," +

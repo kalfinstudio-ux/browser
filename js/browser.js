@@ -329,13 +329,13 @@
     return t;
   }
 
-  function newTab(url) {
+  function newTab(url, opts) {
     if (tabs.length >= MAX_TABS) { flash("Maksimal " + MAX_TABS + " tab. Tutup salah satu dulu."); return null; }
     var t = makeTab();
     T.log("newtab", { meta: { n: tabs.length } });
     switchTab(t);
     layout();
-    if (url) go(t, url);
+    if (url) go(t, url, opts);
     return t;
   }
   /* Tab baru dari tindakan pengguna: langsung fokus ke bar alamat (tidak dipakai saat awal, agar keyboard HP tidak muncul sendiri) */
@@ -445,6 +445,7 @@
     var d = e.data;
     if (!d || d.gwdProxy !== 1 || e.origin !== PROXY_ORIGIN) return;
     var t = tabs.filter(function (x) { return x.frame.contentWindow === e.source; })[0];
+    if (t && typeof d.open === "string") { openFromPage(t, d.open); return; }
     if (t && typeof d.sc === "number" && isFinite(d.sc)) { onPageScroll(t, d.sc, d.top === true); return; }
     var nu = t && cleanUrl(d.url);
     if (!t || !nu) return;
@@ -465,6 +466,19 @@
     t.pending = false;
     render();
   });
+
+  /* Situs meminta tab baru (target=_blank, window.open, Ctrl+klik): buka sebagai tab di dalam browser ini.
+     Hanya dari tab yang sedang tampil dan dibatasi 1 permintaan per 0,8 detik agar pop-up berulang tidak membanjiri. */
+  var lastOpen = 0;
+  function openFromPage(t, raw) {
+    var u = cleanUrl(raw), now = Date.now();
+    if (!u || t !== active || now - lastOpen < 800) return;
+    lastOpen = now;
+    if (tabs.length >= MAX_TABS) { flash("Situs ingin membuka tab baru, tapi sudah " + MAX_TABS + " tab. Tutup satu dulu."); return; }
+    T.log("newtab", { meta: { n: tabs.length + 1, via: "page" } });
+    newTab(u, { proxied: true });
+    flash("Dibuka di tab baru: " + host(u));
+  }
 
   /* ---------- saran alamat ---------- */
   var suggItems = [], suggIdx = -1;
