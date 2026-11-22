@@ -20,7 +20,7 @@
       menuB = $("menuBtn"), menu = $("menu"), modeSel = $("mode"), sizeSel = $("size"), info = $("info"),
       loadBar = $("load"), themeBtn = $("themeBtn"), toast = $("toast"), exitFocus = $("exitFocus"),
       dial = $("dial"), notice = $("notice"), noticeText = $("noticeText"), tryProxy = $("tryProxy"),
-      openTab = $("openTab"), noticeX = $("noticeX"), secIcon = $("secIcon"), modeChip = $("modeChip"), sugg = $("sugg");
+      openTab = $("openTab"), noticeX = $("noticeX"), secIcon = $("secIcon"), modeChip = $("modeChip"), sugg = $("sugg"), chrome = $("chrome");
 
   var tabs = [], active = null, nextId = 1, width = 0, toastTimer = null, saveTimer = null, layoutRaf = 0;
 
@@ -140,6 +140,32 @@
     if (on) { loadBar.style.animation = "none"; void loadBar.offsetWidth; loadBar.style.animation = ""; }
   }
   function clearTimer(t) { if (t.timer) { clearTimeout(t.timer); t.timer = 0; } }
+
+  /* ---------- header menghilang saat scroll (HP) ----------
+     Isi halaman ada di iframe, jadi scroll dilaporkan oleh skrip proxy (worker/proxy.js). Mode Langsung tidak melaporkan scroll,
+     jadi di mode itu header tetap tampil. Scroll turun = sembunyi, scroll naik atau di paling atas = tampil. */
+  var chromeHidden = false, scrollAcc = 0, coolUntil = 0;
+  var narrow = window.matchMedia ? matchMedia("(max-width:700px)") : null;
+  function canHideChrome() {
+    return !!(narrow && narrow.matches) && menu.hidden && sugg.hidden && document.activeElement !== urlIn && !document.body.classList.contains("focus");
+  }
+  function setChrome(hide) {
+    if (hide === chromeHidden) return;
+    if (hide && !canHideChrome()) return;
+    chromeHidden = hide; scrollAcc = 0; coolUntil = Date.now() + 650;   /* abaikan scroll semu akibat ukuran halaman berubah */
+    chrome.style.marginTop = hide ? -chrome.offsetHeight + "px" : "0px";
+    if ("inert" in chrome) chrome.inert = hide;
+  }
+  function onPageScroll(t, d, atTop) {
+    if (t !== active || Date.now() < coolUntil) return;
+    if (atTop) { setChrome(false); return; }
+    if (d * scrollAcc < 0) scrollAcc = 0;          /* arah berbalik: mulai hitung lagi */
+    scrollAcc += d;
+    if (scrollAcc > 40) setChrome(true);
+    else if (scrollAcc < -24) setChrome(false);
+  }
+  if (narrow && narrow.addEventListener) narrow.addEventListener("change", function () { setChrome(false); chrome.style.marginTop = ""; });
+  window.addEventListener("resize", function () { if (chromeHidden) chrome.style.marginTop = -chrome.offsetHeight + "px"; });
 
   /* ---------- tab ---------- */
   var newBtn = document.createElement("button");
@@ -308,7 +334,7 @@
   function userNewTab() { if (newTab()) urlIn.focus(); }
 
   function switchTab(t) {
-    active = t;
+    active = t; setChrome(false);
     render();
     if (t.lazy) { t.lazy = false; go(t, t.url, { fromHistory: true, proxied: t.proxied }); }
   }
@@ -347,7 +373,7 @@
       window.GWD_MOD.ack(rule.host);
     }
 
-    clearTimer(t);
+    clearTimer(t); if (t === active) setChrome(false);
     t.proxied = proxied; t.pending = true; t.t0 = Date.now(); t.blank = false;
     t.url = url; t.title = host(url);
     /* Catat hanya situs & path (tanpa query). Kata pencarian tidak dikirim. */
@@ -411,6 +437,7 @@
     var d = e.data;
     if (!d || d.gwdProxy !== 1 || e.origin !== PROXY_ORIGIN) return;
     var t = tabs.filter(function (x) { return x.frame.contentWindow === e.source; })[0];
+    if (t && typeof d.sc === "number" && isFinite(d.sc)) { onPageScroll(t, d.sc, d.top === true); return; }
     var nu = t && cleanUrl(d.url);
     if (!t || !nu) return;
     clearTimer(t);
