@@ -528,6 +528,13 @@
     if (!visits.length) none("Kosong.");
     visits.slice(0, 15).forEach(function (h) { item(h.title || host(h.url), function () { openIn(h.url); }, { icon: "history", title: h.url }); });
     if (visits.length) item("Hapus riwayat", function () { visits = []; save("gwd.history", visits); flash("Riwayat dihapus"); }, { danger: true });
+    if (window.matchMedia && matchMedia("(max-width:700px)").matches) {   /* footer disembunyikan di HP */
+      section("Informasi");
+      [["privasi", "Privasi"], ["syarat", "Syarat & Ketentuan"], ["larangan", "Penggunaan terlarang"], ["proxy", "Mode proxy"], ["pelacakan", "Pengaturan pelacakan"], ["kontak", "Kontak"]].forEach(function (l) {
+        item(l[1], function () { window.open("legal.html#" + l[0], "_blank", "noopener"); }, { icon: "ext" });
+      });
+      none("\u00a9 2026 GoWithDME. Situs yang dibuka adalah tanggung jawab pemiliknya. Lalu lintas dicatat secara anonim.");
+    }
     menu.hidden = false; menuB.setAttribute("aria-expanded", "true");
     if (!keepFocus) { var f = menu.querySelector(".mi"); if (f) f.focus({ preventScroll: true }); }
   }
