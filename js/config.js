@@ -2,7 +2,7 @@
 window.GWD_CONFIG = {
   /* Alamat server sesi (VPS), tanpa garis miring di akhir. Contoh: "https://sesi.gowithdme.com/api".
      Selama kosong, tombol Mulai sesi menampilkan pesan bahwa server belum diatur. */
-  API_URL: "",
+  API_URL: "https://gowithdme-proxy.calvfinka .workers.dev",
 
   /* Lama sesi (menit). Server tetap yang menentukan; angka ini hanya tampilan awal. */
   SESSION_MINUTES: 5,
