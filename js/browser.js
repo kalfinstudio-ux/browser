@@ -445,6 +445,7 @@
     var d = e.data;
     if (!d || d.gwdProxy !== 1 || e.origin !== PROXY_ORIGIN) return;
     var t = tabs.filter(function (x) { return x.frame.contentWindow === e.source; })[0];
+    if (typeof d.blocked === "string") { onAdBlocked(t || active, d.blocked); return; }
     if (t && typeof d.open === "string") { openFromPage(t, d.open); return; }
     if (t && typeof d.sc === "number" && isFinite(d.sc)) { onPageScroll(t, d.sc, d.top === true); return; }
     var nu = t && cleanUrl(d.url);
@@ -466,6 +467,19 @@
     t.pending = false;
     render();
   });
+
+  /* Proxy menolak pop-up yang dipicu sentuhan pada lapisan tak terlihat / area video (lihat skrip suntikan di worker/proxy.js).
+     Hanya memberi tahu pengguna (maks. 1 kali per 3 detik) dan mencatat jumlahnya; nama host dibersihkan karena pesan berasal dari skrip situs. */
+  var lastBlockNote = 0;
+  function onAdBlocked(t, h) {
+    if (!t || t !== active) return;
+    var now = Date.now();
+    if (now - lastBlockNote < 3000) return;
+    lastBlockNote = now;
+    h = String(h).replace(/[^A-Za-z0-9.\-]/g, "").slice(0, 60);
+    flash("Pop-up iklan diblokir" + (h && h !== "-" ? ": " + h : ""));
+    T.log("notice", { host: h, mode: "proxy", meta: { type: "popup_blocked" } });
+  }
 
   /* Situs meminta tab baru (target=_blank, window.open, Ctrl+klik): buka sebagai tab di dalam browser ini.
      Hanya dari tab yang sedang tampil dan dibatasi 1 permintaan per 0,8 detik agar pop-up berulang tidak membanjiri. */

@@ -22,6 +22,7 @@ CNAME             browser.gowithdme.com
 - Bar alamat dengan ikon kunci, lencana Proxy/Langsung, bintang bookmark, dan saran dari bookmark + riwayat (panah atas/bawah, Enter).
 - Tombol muat ulang berubah menjadi Hentikan saat halaman dimuat.
 - Pintasan: `Ctrl/Cmd+L` fokus ke alamat, `Alt+T` tab baru, `Alt+W` tutup tab, `Alt+←/→` mundur/maju, `Esc` tutup menu/keluar mode fokus. Di daftar tab: panah kiri/kanan, `Delete`, klik tengah untuk menutup.
+- Pemblokir pop-up dari sentuhan (mode Proxy): lapisan transparan/iklan tak terlihat, ketukan di area video (geser maju, percepat), atau elemen non-kontrol yang membuka tab situs lain ditolak; lapisan yang ketahuan dibuat tembus sentuhan. Logika ada di skrip suntikan `worker/proxy.js` (salinan `js/proxy.js` harus sama) — deploy ulang Worker. Mode Langsung tidak bisa diperiksa.
 - Pemberitahuan dan indikator muat dipisah per tab; alamat dari proxy divalidasi (hanya http/https); pesan offline/online.
 
 ## Pasang di GitHub Pages

@@ -81,7 +81,7 @@ function text(status, body) {
 }
 
 /* Skrip yang disuntik ke setiap halaman HTML. ES5 agar jalan di mana saja. */
-const INJECT = "<script>(function(){" +
+export const INJECT = "<script>(function(){" +
   "var O=location.origin;" +
   "function real(){return (location.pathname.slice(3)+location.search).replace(/^(https?):\\/+/i,'$1://')}" +
   "function px(u){try{var s=String(u);if(!s||/^(#|data:|blob:|javascript:|mailto:|tel:|about:)/i.test(s))return u;" +
@@ -90,7 +90,47 @@ const INJECT = "<script>(function(){" +
   "try{var F=window.fetch;if(F)window.fetch=function(i,o){try{if(typeof i==='string'||i instanceof URL)i=px(i);" +
   "else if(i&&i.url){var n=px(i.url);if(n!==i.url)i=new Request(n,i)}}catch(e){}return F.call(this,i,o)}}catch(e){}" +
   "try{var X=XMLHttpRequest.prototype.open;XMLHttpRequest.prototype.open=function(m,u){arguments[1]=px(u);return X.apply(this,arguments)}}catch(e){}" +
-  "try{var W=window.open;window.open=function(u){if(u)arguments[0]=px(u);return W.apply(this,arguments)}}catch(e){}" +
+  /* Tab/jendela baru dari situs diteruskan ke browser induk supaya dibuka sebagai tab di dalam aplikasi, bukan tab browser asli.
+     Hanya bila ada interaksi pengguna (klik), agar iklan pop-up otomatis tidak membanjiri tab. */
+  "function unp(h){try{var a=new URL(h,location.href);if(a.origin===O&&/^\\/[pq]\\//.test(a.pathname))return (a.pathname.slice(3)+a.search+a.hash).replace(/^(https?):\\/+/i,'$1://');return a.href}catch(e){return ''}}" +
+  "function opn(u){try{if(navigator.userActivation&&!navigator.userActivation.isActive)return false;u=unp(u);if(!/^https?:/i.test(u))return false;parent.postMessage({gwdProxy:1,open:u},'*');return true}catch(e){return false}}" +
+  /* Pemblokir overlay tak terlihat / pop-up dari sentuhan.
+     Setiap sentuhan dicatat (elemen yang disentuh, apakah ia lapisan transparan, apakah di atas video).
+     Bila sesaat sesudahnya halaman membuka tab baru (window.open, a.click() ber-target), pop-up ditolak jika:
+       - yang disentuh lapisan tak terlihat (opacity ~0, atau kotak kosong transparan melayang yang luas), atau iframe iklan tak terlihat;
+       - atau yang disentuh bukan kontrol (bukan tautan/tombol/input) dan tujuannya situs lain;
+       - atau sentuhan jatuh di area <video> (geser maju, percepat, ketuk layar) dan tujuannya situs lain.
+     Lapisan yang ketahuan diberi pointer-events:none agar sentuhan berikutnya menembus ke video. Pemanggil dapat objek jendela palsu
+     (bukan null) supaya skrip iklan tidak beralih ke location.href. */
+  "var G={t:0,ghost:null,ui:false,v:false},BT=0,FE=null;try{FE=window.frameElement}catch(e){}" +
+  "function al(c){var m=String(c).match(/rgba?\\(([^)]+)\\)/);if(!m)return c==='transparent'?0:1;var p=m[1].split(/[ ,\\/]+/).filter(Boolean);return p.length>3?parseFloat(p[3])*(/%/.test(p[3])?0.01:1):1}" +
+  "function gb(el,only){try{var w=el.ownerDocument.defaultView||window,cs=w.getComputedStyle(el);if(cs.display==='none'||cs.visibility==='hidden')return false;" +
+  "var r=el.getBoundingClientRect();if(r.width*r.height<(w.innerWidth||1)*(w.innerHeight||1)*0.04)return false;" +
+  "if(/^(VIDEO|CANVAS|IMG|SVG|PICTURE|BUTTON|INPUT|TEXTAREA|SELECT|AUDIO|BODY|HTML)$/i.test(el.tagName))return false;" +
+  "var op=1,n=el;for(var i=0;n&&n.nodeType===1&&i<6;i++,n=n.parentElement){var o=parseFloat(w.getComputedStyle(n).opacity);op*=isNaN(o)?1:o}" +
+  "if(op<0.05)return true;if(only)return false;" +
+  "if(al(cs.backgroundColor)>0.05||cs.backgroundImage!=='none')return false;" +
+  "if((el.textContent||'').replace(/\\s/g,''))return false;" +
+  "if(el.querySelector&&el.querySelector('img,video,canvas,svg,button,input,picture,audio'))return false;" +
+  "return cs.position==='fixed'||cs.position==='absolute'||cs.position==='sticky'||parseInt(cs.zIndex,10)>0}catch(e){return false}}" +
+  "function fg(t){var n=t,d=0;while(n&&n.nodeType===1&&d<6&&n!==document.body&&n!==document.documentElement){if(gb(n))return n;n=n.parentElement;d++}return FE&&gb(FE,1)?FE:null}" +
+  "function ui(t){return !!(t&&t.closest&&t.closest('a[href],button,input,select,textarea,label,summary,[role=button],[role=link],[role=menuitem],[role=tab],[role=slider]'))}" +
+  "function pv(e){try{var q=(e.changedTouches&&e.changedTouches[0])||e,x=q.clientX,y=q.clientY,vs=document.getElementsByTagName('video');" +
+  "for(var i=0;i<vs.length;i++){var r=vs[i].getBoundingClientRect();if(x>=r.left&&x<=r.right&&y>=r.top&&y<=r.bottom)return true}}catch(x){}return false}" +
+  "function tap(e){try{var t=(e.composedPath&&e.composedPath()[0])||e.target;if(t&&t.nodeType!==1)t=t.parentElement;G.t=Date.now();G.ghost=t?fg(t):null;G.ui=ui(t);G.v=pv(e)}catch(x){}}" +
+  "['pointerdown','touchstart','mousedown','pointerup','touchend','mouseup','click'].forEach(function(n){addEventListener(n,tap,true)});" +
+  "function same(h,m){return !h||h===m||h.slice(-m.length-1)==='.'+m||m.slice(-h.length-1)==='.'+h}" +
+  "function bad(u){try{var n=Date.now();if(n-BT<1500)return true;if(n-G.t>2500)return false;if(G.ghost)return true;" +
+  "if(!u)return !G.ui||G.v;var m=new URL(real()).hostname,h=new URL(unp(u)||u,real()).hostname;return (!G.ui||G.v)&&!same(h,m)}catch(e){return false}}" +
+  "function blk(u){try{BT=Date.now();if(G.ghost)G.ghost.style.setProperty('pointer-events','none','important');var h='';try{h=new URL(unp(u||'')||u||'',real()).hostname}catch(e){}top.postMessage({gwdProxy:1,blocked:h||'-'},'*')}catch(e){}}" +
+  "function fake(){var d={write:function(){},writeln:function(){},close:function(){}};d.open=function(){return d};return {closed:false,close:function(){this.closed=true},focus:function(){},blur:function(){},postMessage:function(){},document:d,location:{href:'',assign:function(){},replace:function(){}}}}" +
+  "try{var W=window.open;window.open=function(u,n,f){var g=String(n||'_blank').toLowerCase(),out=g!=='_self'&&g!=='_top'&&g!=='_parent';" +
+  "if(out&&bad(u)){blk(u);return fake()}if(u&&out){opn(px(u));return null}if(u)arguments[0]=px(u);return W.apply(this,arguments)}}catch(e){}" +
+  "try{var AC=HTMLElement.prototype.click;HTMLAnchorElement.prototype.click=function(){try{var g=(this.getAttribute('target')||'').toLowerCase();if(g&&g!=='_self'&&g!=='_top'&&g!=='_parent'&&bad(this.href)){blk(this.href);return}}catch(e){}return AC.apply(this,arguments)}}catch(e){}" +
+  "addEventListener('click',function(e){try{if(e.defaultPrevented||e.button>1)return;var a=e.target&&e.target.closest?e.target.closest('a[href]'):null;if(!a)return;" +
+  "if(G.ghost&&Date.now()-G.t<2500){e.preventDefault();e.stopImmediatePropagation();blk(a.href);return}var g=(a.getAttribute('target')||'').toLowerCase();" +
+  "if(g==='_top'||g==='_parent'){e.preventDefault();location.href=a.href;return}" +
+  "if((g&&g!=='_self')||e.ctrlKey||e.metaKey||e.shiftKey){if(!/^https?:/i.test(unp(a.href)))return;e.preventDefault();opn(a.href)}}catch(x){}},true);" +
   "try{var S=Element.prototype.setAttribute;Element.prototype.setAttribute=function(n,v){" +
   "if(typeof v==='string'&&/^(src|href|action|poster|data)$/i.test(n))v=px(v);return S.call(this,n,v)}}catch(e){}" +
   "[['HTMLImageElement','src'],['HTMLScriptElement','src'],['HTMLIFrameElement','src'],['HTMLLinkElement','href']," +
