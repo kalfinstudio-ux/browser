@@ -8,6 +8,7 @@
   var SEARCH = C.SEARCH_URL || "https://html.duckduckgo.com/html/?q=";
   var HOME = C.DEFAULT_URL || "https://gowithdme.com";
   var MAX_TABS = 8;
+  var T = window.GWD_TRACK || { log: function () {} };   /* js/track.js; aman bila tidak dimuat */
 
   var $ = function (id) { return document.getElementById(id); };
   var tabsEl = $("tabs"), form = $("form"), urlIn = $("url"), stage = $("stage"), empty = $("empty"),
@@ -147,6 +148,7 @@
     var t = { id: nextId++, title: "Tab baru", url: "", hist: [], idx: -1, pane: pane, frame: frame, proxied: false, pending: false };
     frame.addEventListener("load", function () { if (t === active) busy(false); });
     tabs.push(t);
+    T.log("newtab", { meta: { n: tabs.length } });
     switchTab(t);
     layout();
     if (url) go(t, url);
@@ -157,6 +159,7 @@
 
   function closeTab(t) {
     var i = tabs.indexOf(t);
+    T.log("closetab", { meta: { n: tabs.length - 1 } });
     t.pane.remove(); tabs.splice(i, 1);
     if (!tabs.length) { active = null; newTab(); return; }
     if (t === active) active = tabs[Math.min(i, tabs.length - 1)];
@@ -176,8 +179,11 @@
       if (PROXY) proxied = true;
       else return say("Alamat http:// tidak bisa ditampilkan di halaman aman ini. Coba pakai https://");
     }
-    t.proxied = proxied; t.pending = true;
+    t.proxied = proxied; t.pending = true; t.t0 = Date.now();
     t.url = url; t.title = host(url);
+    /* Catat hanya situs & path (tanpa query). Kata pencarian tidak dikirim. */
+    T.log(opts.search ? "search" : (opts.fromHistory && opts.reload ? "reload" : "nav"),
+      opts.search ? { host: host(url), mode: proxied ? "proxy" : "direct" } : { url: url, mode: proxied ? "proxy" : "direct" });
     if (!opts.fromHistory) {
       t.hist = t.hist.slice(0, t.idx + 1);
       t.hist.push(url); t.idx = t.hist.length - 1;
@@ -189,6 +195,7 @@
 
     /* Browser tidak memberi tahu bila situs menolak iframe, jadi beri petunjuk setelah beberapa detik. */
     noticeTimer = setTimeout(function () {
+      T.log("notice", { url: url, mode: proxied ? "proxy" : "direct", meta: { type: proxied ? "slow_proxy" : "blocked_frame" } });
       busy(false);
       say(proxied
         ? "Halaman lama dimuat atau situs ini menolak proxy. Kamu bisa membukanya langsung."
@@ -218,6 +225,8 @@
     if (!t || typeof d.url !== "string") return;
     clearTimeout(noticeTimer);
     if (t === active) busy(false);
+    if (t.pending && t.t0) { T.log("load", { url: d.url, mode: "proxy", ms: Date.now() - t.t0 }); t.t0 = 0; }
+    else if (!t.pending && d.url !== t.url) T.log("nav", { url: d.url, mode: "proxy", meta: { via: "link" } });
     if (d.title) t.title = String(d.title).slice(0, 80);
     if (d.url !== t.url) {
       t.url = d.url;
@@ -268,7 +277,7 @@
   urlIn.addEventListener("focus", function () { urlIn.select(); });
   backB.addEventListener("click", function () { if (active.idx > 0) { active.idx--; go(active, active.hist[active.idx], { fromHistory: true, proxied: active.proxied }); } });
   fwdB.addEventListener("click", function () { if (active.idx < active.hist.length - 1) { active.idx++; go(active, active.hist[active.idx], { fromHistory: true, proxied: active.proxied }); } });
-  reloadB.addEventListener("click", function () { if (active && active.url) go(active, active.url, { fromHistory: true, proxied: active.proxied }); });
+  reloadB.addEventListener("click", function () { if (active && active.url) go(active, active.url, { fromHistory: true, reload: true, proxied: active.proxied }); });
   homeB.addEventListener("click", function () { submit(HOME); });
   tryProxy.addEventListener("click", function () { if (active && active.url) { modeSel.value = "proxy"; go(active, active.url, { fromHistory: true, proxied: true }); } });
 
@@ -276,7 +285,7 @@
     if (!active || !active.url) return;
     var i = -1;
     bookmarks.forEach(function (b, k) { if (b.url === active.url) i = k; });
-    if (i >= 0) { bookmarks.splice(i, 1); flash("Bookmark dihapus"); } else { bookmarks.unshift({ url: active.url, title: active.title }); flash("Bookmark disimpan"); }
+    if (i >= 0) { bookmarks.splice(i, 1); flash("Bookmark dihapus"); } else { bookmarks.unshift({ url: active.url, title: active.title }); T.log("bookmark", { url: active.url }); flash("Bookmark disimpan"); }
     save("gwd.bookmarks", bookmarks); render();
   });
 
@@ -289,9 +298,10 @@
 
   modeSel.addEventListener("change", function () {
     save("gwd.mode", modeSel.value);
+    T.log("mode", { mode: modeSel.value });
     if (active && active.url) go(active, active.url, { fromHistory: true });
   });
-  sizeSel.addEventListener("change", function () { width = parseInt(sizeSel.value, 10) || 0; layout(); });
+  sizeSel.addEventListener("change", function () { width = parseInt(sizeSel.value, 10) || 0; T.log("size", { width: width }); layout(); });
   window.addEventListener("resize", layout);
 
   /* ---------- mulai ---------- */
@@ -300,6 +310,7 @@
   modeSel.value = PROXY ? load("gwd.mode", "proxy") : "direct";
   if (!PROXY) modeSel.querySelector('[value="proxy"]').disabled = true;
 
+  T.log("open", { mode: modeSel.value });
   newTab();
   if (!PROXY) say("Proxy belum diatur, jadi hanya situs yang mengizinkan iframe yang bisa dibuka. Isi PROXY_URL di js/config.js.");
   var q = new URLSearchParams(location.search).get("u");

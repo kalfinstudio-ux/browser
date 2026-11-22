@@ -5,3 +5,10 @@ compatibility_date = "2025-01-01"
 [vars]
 # Asal halaman yang boleh memakai proxy ini (pisahkan dengan koma)
 ALLOWED_ORIGINS = "https://browser.gowithdme.com"
+
+# Pencatatan lalu lintas ke Supabase (tampil di Panel Admin > Statistik > Browser). Kosongkan SUPABASE_URL untuk mematikan.
+SUPABASE_URL = "https://jhqkylnqvhrljpaknjcg.supabase.co"
+SUPABASE_ANON_KEY = "sb_publishable_WEpourxfk4IKga2XyxKucQ_hkmxuJnY"
+# Peluang mencatat berkas pendukung (gambar/CSS/JS) yang sukses: 0 sampai 1. Halaman dan galat selalu dicatat.
+LOG_ASSET_SAMPLE = "0.1"
+# Rahasia LOG_SECRET JANGAN ditulis di sini. Pasang lewat:  npx wrangler secret put LOG_SECRET

@@ -101,10 +101,38 @@ const INJECT = "<script>(function(){" +
   "addEventListener('DOMContentLoaded',tell);addEventListener('load',tell);addEventListener('popstate',tell);tell();" +
   "})();</script>";
 
+/* ---------- pencatat lalu lintas ke Supabase (opsional) ----------
+   Aktif bila SUPABASE_URL, SUPABASE_ANON_KEY (vars) dan LOG_SECRET (secret) terisi.
+   Dikirim lewat ctx.waitUntil sehingga tidak memperlambat respons. Tanpa IP, tanpa query, tanpa isi halaman. */
+
+export function buildLog(kind, t, status, ms, bytes, meta) {
+  const rec = { src: "proxy", kind: kind, host: t ? t.hostname : "", path: t ? t.pathname : "", mode: "proxy", status: status, ms: Math.round(ms) };
+  if (bytes > 0) rec.bytes = bytes;
+  if (meta) rec.meta = meta;
+  return rec;
+}
+
+function sendLog(env, ctx, rec) {
+  if (!env.SUPABASE_URL || !env.SUPABASE_ANON_KEY || !env.LOG_SECRET) return;
+  const p = fetch(String(env.SUPABASE_URL).replace(/\/+$/, "") + "/rest/v1/rpc/browser_log", {
+    method: "POST",
+    headers: { "content-type": "application/json", apikey: env.SUPABASE_ANON_KEY },
+    body: JSON.stringify({ p_events: [rec], p_secret: env.LOG_SECRET })
+  }).catch(function () {});
+  if (ctx && ctx.waitUntil) ctx.waitUntil(p);
+}
+
+/* Dokumen (halaman) dan semua galat selalu dicatat; berkas pendukung (gambar, CSS, JS) disampel agar baris tidak membengkak. */
+function shouldLog(env, kind, status) {
+  if (kind !== "asset" || status >= 400) return true;
+  const r = parseFloat(env.LOG_ASSET_SAMPLE);
+  return Math.random() < (isNaN(r) ? 0.1 : Math.max(0, Math.min(1, r)));
+}
+
 /* ---------- penangan utama ---------- */
 
 export default {
-  async fetch(req, env) {
+  async fetch(req, env, ctx) {
     const url = new URL(req.url);
     if (req.method === "OPTIONS") return new Response(null, { status: 204 });
 
@@ -130,6 +158,7 @@ export default {
     let t;
     try { t = new URL(target); } catch (e) { return text(400, "Alamat tidak valid."); }
     if ((t.protocol !== "http:" && t.protocol !== "https:") || blockedHost(t.hostname)) {
+      sendLog(env, ctx, buildLog("error", t, 403, 0, 0, { reason: "blocked" }));
       return text(403, "Alamat ini tidak diizinkan.");
     }
 
@@ -142,12 +171,16 @@ export default {
     if (req.method !== "GET" && req.method !== "HEAD") h.set("origin", t.origin);
 
     let up;
+    const t0 = Date.now();
     try {
       up = await fetch(t.href, {
         method: req.method, headers: h, redirect: "manual",
         body: req.method === "GET" || req.method === "HEAD" ? undefined : req.body
       });
-    } catch (e) { return text(502, "Gagal menghubungi situs tujuan."); }
+    } catch (e) {
+      sendLog(env, ctx, buildLog("error", t, 502, Date.now() - t0, 0, { reason: "upstream" }));
+      return text(502, "Gagal menghubungi situs tujuan.");
+    }
 
     if (up.status >= 300 && up.status < 400 && up.headers.get("location")) {
       let loc;
@@ -166,6 +199,13 @@ export default {
 
     const ct = (up.headers.get("content-type") || "").toLowerCase();
     const init = { status: up.status, headers: out };
+
+    const dest = req.headers.get("sec-fetch-dest") || "";
+    const isDoc = ct.indexOf("text/html") >= 0 || dest === "iframe" || dest === "document";
+    const kind = up.status >= 400 ? "error" : isDoc ? "doc" : "asset";
+    if (shouldLog(env, kind, up.status)) {
+      sendLog(env, ctx, buildLog(kind, t, up.status, Date.now() - t0, parseInt(up.headers.get("content-length") || "0", 10) || 0));
+    }
 
     if (ct.indexOf("text/html") >= 0) return rewriteHtml(up, init, t.href, url.origin);
 
