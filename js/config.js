@@ -20,6 +20,9 @@ window.GWD_CONFIG = {
   /* Lama sesi (menit). Server tetap yang menentukan; angka ini hanya tampilan awal. */
   SESSION_MINUTES: 5,
 
+  /* Alamat publik situs ini (dipakai untuk tautan "Bagikan"), dengan garis miring di akhir. */
+  SITE_URL: "https://browser.gowithdme.com/",
+
   DEFAULT_URL: "gowithdme.com",
 
   OS: [

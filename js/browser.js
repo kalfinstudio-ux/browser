@@ -540,6 +540,36 @@
     } else urlIn.removeAttribute("aria-activedescendant");
   }
 
+  /* ---------- bagikan & pasang ---------- */
+  var SITE = (C.SITE_URL || (location.origin + "/")).replace(/\/?$/, "/");
+  function shareLink(target, withSize) {
+    var l = SITE;
+    if (target) l += "?u=" + encodeURIComponent(target) + (withSize && width ? "&s=" + width : "");
+    return l;
+  }
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText && window.isSecureContext) return navigator.clipboard.writeText(text);
+    return new Promise(function (ok, no) {
+      try {
+        var ta = document.createElement("textarea"); ta.value = text; ta.setAttribute("readonly", "");
+        ta.style.cssText = "position:fixed;top:-100px;opacity:0"; document.body.appendChild(ta); ta.select();
+        var done = document.execCommand("copy"); document.body.removeChild(ta); done ? ok() : no();
+      } catch (e) { no(e); }
+    });
+  }
+  function share(link, title, text) {
+    if (navigator.share) {
+      navigator.share({ title: title, text: text, url: link }).catch(function (e) { if (!e || e.name !== "AbortError") copyText(link).then(function () { flash("Tautan disalin"); }, function () {}); });
+      return;
+    }
+    copyText(link).then(function () { flash("Tautan disalin"); }, function () { window.prompt("Salin tautan ini:", link); });
+  }
+  function installApp() {
+    var P = window.GWD_PWA, k = P && P.kind();
+    if (k === "prompt") P.install().then(function (r) { if (r === "accepted") flash("Aplikasi dipasang"); });
+    else if (k === "ios") flash("Di Safari: ketuk Bagikan, lalu Tambah ke Layar Utama.", 5000);
+  }
+
   /* ---------- menu ---------- */
   function section(title) { var h = document.createElement("h3"); h.textContent = title; menu.appendChild(h); }
   function item(label, fn, o) {
@@ -570,6 +600,10 @@
     item("Buka di tab browser (jendela baru)", function () { if (has) window.open(active.url, "_blank", "noopener,noreferrer"); }, { icon: "ext" });
     item("Mode fokus (sembunyikan bar)", function () { setFocus(true); }, { icon: "globe" });
     item("Layar penuh", function () { var el = active && active.pane; if (el && el.requestFullscreen) el.requestFullscreen().catch(function () {}); else flash("Layar penuh tidak didukung di perangkat ini."); }, { icon: "ext" });
+    section("Bagikan & pasang");
+    if (has) item("Bagikan situs ini" + (width ? " (ukuran " + width + " px)" : ""), function () { share(shareLink(active.url, true), active.title || host(active.url), "Lihat " + host(active.url) + " di Browser GoWithDME"); }, { icon: "ext", title: "Tautan membuka situs ini langsung di browser ini" + (width ? ", dengan ukuran layar yang sama" : "") });
+    item("Bagikan browser ini", function () { share(shareLink(""), "Browser GoWithDME", "Browser online gratis untuk tes tampilan web di layar HP, tablet, dan desktop."); }, { icon: "globe" });
+    if (window.GWD_PWA && window.GWD_PWA.kind()) item("Pasang sebagai aplikasi", installApp, { icon: "plus" });
     if (has && window.GWD_MOD) {
       section("Laporkan situs ini");
       [["berbahaya", "Berbahaya atau malware"], ["penipuan", "Penipuan atau phishing"], ["dewasa", "Konten dewasa"], ["lainnya", "Lainnya"]].forEach(function (r) {
@@ -714,7 +748,14 @@
   if (sizeSel.querySelector('[value="' + savedSize + '"]')) { sizeSel.value = savedSize; width = parseInt(savedSize, 10) || 0; }
 
   T.log("open", { mode: modeSel.value });
-  var q = new URLSearchParams(location.search).get("u");
+  var QS = new URLSearchParams(location.search);
+  var q = QS.get("u");
+  if (!q) {   /* dibuka lewat Bagikan dari aplikasi lain (share target): ambil tautan dari teks, atau jadikan pencarian */
+    var sh = (QS.get("text") || "") + " " + (QS.get("title") || ""), mm = sh.match(/https?:\/\/[^\s]+/);
+    q = mm ? mm[0] : (QS.get("text") || "").trim().slice(0, 200);
+  }
+  var qs = QS.get("s");   /* tautan bagikan membawa ukuran layar; hanya berlaku sesi ini, tidak disimpan */
+  if (q && qs && sizeSel.querySelector('[value="' + qs + '"]')) { sizeSel.value = qs; width = parseInt(qs, 10) || 0; }
   var restored = restoreTabs && !q && restore();     /* dengan ?u= mulai bersih di tab baru */
   if (!restored) newTab();
   layout();

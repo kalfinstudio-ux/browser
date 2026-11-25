@@ -6,8 +6,29 @@
 <meta name="color-scheme" content="light dark">
 <meta name="theme-color" content="#ffffff" id="themeColor">
 <script>(function(){try{var t=JSON.parse(localStorage.getItem("gwd.theme"))||"auto";var d=t==="dark"||(t==="auto"&&matchMedia("(prefers-color-scheme: dark)").matches);document.documentElement.dataset.theme=d?"dark":"light"}catch(e){}})();</script>
-<title>Browser · GoWithDME</title>
-<meta name="description" content="Buka situs apa saja di dalam halaman: tab, riwayat, bookmark, dan ukuran layar HP, tablet, desktop.">
+<title>Browser Online &amp; Tes Tampilan Web di Layar HP, Tablet, Desktop · GoWithDME</title>
+<meta name="description" content="Browser online gratis tanpa install: buka situs di dalam halaman dengan tab, bookmark, dan riwayat, lalu tes tampilan web di layar HP, tablet, dan desktop.">
+<link rel="canonical" href="https://browser.gowithdme.com/">
+<link rel="manifest" href="manifest.webmanifest">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="GWD Browser">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="GoWithDME">
+<meta property="og:locale" content="id_ID">
+<meta property="og:url" content="https://browser.gowithdme.com/">
+<meta property="og:title" content="Browser GoWithDME: Browser Online &amp; Tes Tampilan Web">
+<meta property="og:description" content="Lihat situs di layar HP, tablet, dan desktop. Gratis, tanpa install.">
+<meta property="og:image" content="https://browser.gowithdme.com/assets/og-image.png">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:image:alt" content="Browser GoWithDME: tes tampilan web di layar HP, tablet, dan desktop">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="Browser GoWithDME: Browser Online &amp; Tes Tampilan Web">
+<meta name="twitter:description" content="Lihat situs di layar HP, tablet, dan desktop. Gratis, tanpa install.">
+<meta name="twitter:image" content="https://browser.gowithdme.com/assets/og-image.png">
+<script type="application/ld+json">{"@context":"https://schema.org","@type":"WebApplication","name":"Browser GoWithDME","url":"https://browser.gowithdme.com/","description":"Browser online untuk membuka situs dan tes tampilan web di layar HP, tablet, dan desktop.","applicationCategory":"UtilitiesApplication","operatingSystem":"Any","inLanguage":"id","isAccessibleForFree":true,"offers":{"@type":"Offer","price":"0","priceCurrency":"IDR"},"publisher":{"@type":"Organization","name":"GoWithDME","url":"https://gowithdme.com/"}}</script>
 <link rel="icon" href="assets/favicon.svg" type="image/svg+xml">
 <link rel="icon" href="assets/favicon-32.png" sizes="32x32" type="image/png">
 <link rel="icon" href="assets/favicon.ico" sizes="any">
@@ -114,6 +135,16 @@
     <h1>Browser GoWithDME</h1>
     <p>Ketik alamat situs atau kata pencarian di atas. Tab, riwayat, dan bookmark tersimpan di perangkatmu.</p>
     <div class="dial" id="dial"></div>
+    <section class="about" aria-labelledby="aboutH">
+      <h2 id="aboutH">Tes tampilan web tanpa ribet</h2>
+      <p>Buka situs apa saja langsung di halaman ini, lalu ganti ukuran layar ke <strong>HP 360 px</strong>, <strong>tablet 768 px</strong>, atau <strong>desktop 1280 px</strong> untuk melihat tampilan responsifnya. Gratis dan tanpa install.</p>
+      <ul>
+        <li>Tab, bookmark, dan riwayat tersimpan di perangkatmu</li>
+        <li>Mode proxy untuk situs yang melarang ditampilkan di iframe</li>
+        <li>Bagikan tautan lengkap dengan ukuran layarnya lewat menu <strong>⋮</strong></li>
+        <li>Bisa dipasang sebagai aplikasi di layar utama</li>
+      </ul>
+    </section>
     <p class="hint">Pintasan: <kbd>Ctrl</kbd>+<kbd>L</kbd> alamat · <kbd>Alt</kbd>+<kbd>T</kbd> tab baru · <kbd>Alt</kbd>+<kbd>W</kbd> tutup tab</p>
   </div>
 </main>
@@ -136,6 +167,7 @@
 <script src="js/config.js"></script>
 <script src="js/track.js"></script>
 <script src="js/moderasi.js"></script>
+<script src="js/pwa.js"></script>
 <script src="js/browser.js"></script>
 </body>
 </html>

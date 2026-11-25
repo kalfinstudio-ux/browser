@@ -1,2 +1,4 @@
 User-agent: *
 Allow: /
+
+Sitemap: https://browser.gowithdme.com/sitemap.xml
